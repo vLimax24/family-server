@@ -29,6 +29,7 @@ export default function Page() {
     apiService.getDashboardData(selectedMember.id)
       .then(({ plants, chores }) => {
         setPlants(plants);
+        console.log(chores)
         setChores(chores);
       })
       .catch(console.error);

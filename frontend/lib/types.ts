@@ -19,6 +19,9 @@ export interface Chore {
   interval: number;
   last_done: number;
   worker_id: number;
+  rotation_enabled: number;
+  rotation_order: string;
+  last_assigned_index: number;
 }
 
 export type UrgencyLevel = 'low' | 'medium' | 'high';

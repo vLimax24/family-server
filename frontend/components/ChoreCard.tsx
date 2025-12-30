@@ -1,4 +1,4 @@
-import { CheckCircle2, Circle, Clock, Check } from 'lucide-react';
+import { CheckCircle2, Circle, Clock, Check, RotateCw } from 'lucide-react';
 import { Chore } from "@/lib/types";
 
 interface ChoreCardProps {
@@ -76,6 +76,12 @@ export function ChoreCard({ chore, onComplete }: ChoreCardProps) {
           <Clock className="w-5 h-5" strokeWidth={2} />
           <span className="text-lg">{getLastCompletedText()}</span>
         </div>
+        {chore.rotation_enabled == 1 &&
+            <div className="flex items-center gap-2 text-gray-600">
+              <RotateCw className="w-5 h-5" strokeWidth={2} />
+              <span className="text-lg">Rotierende Aufgabe</span>
+            </div>
+        }
 
         {/* Action Button */}
         <button

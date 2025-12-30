@@ -39,7 +39,7 @@ export function UserSelector({ members, onSelectMember }: UserSelectorProps) {
             >
               <div className="relative">
                 <div className="w-32 h-32 rounded-full flex items-center justify-center text-6xl shadow-lg transition-all duration-300 bg-gradient-to-br from-slate-100 via-slate-50 to-slate-100 group-hover:from-blue-50 group-hover:to-indigo-50 shadow-slate-200">
-                  {member.role == "child" ? "👧" : "🧒"}
+                  {member.name == 'Linas' ? '🧑' : member.name == "Amelie" ? '👧' : member.name == "Katrin" ? '👩' : '👨'}
                 </div>
               </div>
 

@@ -9,6 +9,9 @@ sql_statements = [
         name TEXT NOT NULL,
         interval INTEGER NOT NULL,
         last_done INTEGER,
+        rotation_enabled INTEGER NOT NULL DEFAULT 0,
+        rotation_order TEXT,
+        last_assigned_index INTEGER,
         worker_id INTEGER,
         FOREIGN KEY(worker_id) REFERENCES person(id)
     );""",
