@@ -98,7 +98,7 @@ export default function Page() {
                   </button>
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white flex items-center justify-center text-2xl">
-                      {selectedMember.role === "child" ? "👧" : "🧒"}
+                      {selectedMember.name == 'Linas' ? '🧑' : selectedMember.name == "Amelie" ? '👧' : selectedMember.name == "Katrin" ? '👩' : '👨'}
                     </div>
                     <div>
                       <h1 className="text-2xl font-semibold text-gray-900">
