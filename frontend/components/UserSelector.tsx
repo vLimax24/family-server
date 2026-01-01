@@ -18,50 +18,46 @@ export function UserSelector({ members, onSelectMember }: UserSelectorProps) {
   };
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center">
-      <div className="space-y-12 select-none max-w-6xl w-full">
-        <div className="text-center space-y-3">
+    <div className="min-h-screen w-full flex items-center justify-center p-4 sm:p-6 lg:p-8">
+      <div className="space-y-8 sm:space-y-10 lg:space-y-12 select-none max-w-6xl w-full">
+        <div className="text-center space-y-2 sm:space-y-3">
           <div className="inline-block">
-            <h2 className="text-6xl font-bold bg-gradient-to-r from-slate-800 via-slate-700 to-slate-900 bg-clip-text text-transparent">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold bg-gradient-to-r from-slate-800 via-slate-700 to-slate-900 bg-clip-text text-transparent">
               {getGreeting()}
             </h2>
-            <div className="h-1 bg-gradient-to-r from-transparent via-emerald-500 to-transparent rounded-full mt-2"></div>
+            <div className="h-0.5 sm:h-1 bg-gradient-to-r from-transparent via-emerald-500 to-transparent rounded-full mt-1 sm:mt-2"></div>
           </div>
-          <p className="text-xl text-slate-600 font-light">Wer nutzt heute das Dashboard?</p>
+          <p className="text-base sm:text-lg lg:text-xl text-slate-600 font-light px-4">
+            Wer nutzt heute das Dashboard?
+          </p>
         </div>
 
-        <div className="grid grid-cols-4 gap-8">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
           {members.map((member) => (
             <button
               key={member.id}
               onClick={() => onSelectMember(member)}
-              className="group relative flex flex-col items-center gap-6 p-8 rounded-3xl transition-all duration-300 bg-white/80 backdrop-blur-sm hover:shadow-xl hover:shadow-slate-200 hover:scale-105 hover:bg-white border border-slate-200"
+              className="group relative flex flex-col items-center gap-3 sm:gap-4 lg:gap-6 p-4 sm:p-6 lg:p-8 rounded-2xl sm:rounded-3xl transition-all duration-300 bg-white/80 backdrop-blur-sm hover:shadow-xl hover:shadow-slate-200 hover:scale-105 hover:bg-white border border-slate-200"
             >
               <div className="relative">
-                <div className="w-32 h-32 rounded-full flex items-center justify-center text-6xl shadow-lg transition-all duration-300 bg-gradient-to-br from-slate-100 via-slate-50 to-slate-100 group-hover:from-blue-50 group-hover:to-indigo-50 shadow-slate-200">
+                <div className="w-20 h-20 sm:w-24 sm:h-24 lg:w-32 lg:h-32 rounded-full flex items-center justify-center text-4xl sm:text-5xl lg:text-6xl shadow-lg transition-all duration-300 bg-gradient-to-br from-slate-100 via-slate-50 to-slate-100 group-hover:from-blue-50 group-hover:to-indigo-50 shadow-slate-200">
                   {member.name == 'Linas' ? '🧑' : member.name == "Amelie" ? '👧' : member.name == "Katrin" ? '👩' : '👨'}
                 </div>
               </div>
 
-              <span className="text-2xl font-semibold transition-colors duration-300 text-slate-700 group-hover:text-slate-900">
+              <span className="text-lg sm:text-xl lg:text-2xl font-semibold transition-colors duration-300 text-slate-700 group-hover:text-slate-900">
                 {member.name}
               </span>
             </button>
           ))}
         </div>
 
-        <div className="text-center pt-4">
-          <p className="text-sm text-slate-400 font-light">Profil auswählen für dein personalisiertes Smart Home</p>
+        <div className="text-center pt-2 sm:pt-3 lg:pt-4">
+          <p className="text-xs sm:text-sm text-slate-400 font-light px-4">
+            Profil auswählen für dein personalisiertes Smart Home
+          </p>
         </div>
       </div>
     </div>
   );
 }
-
-// Demo
-const demoMembers = [
-  { id: '1', name: 'Sarah', avatar: '👩' },
-  { id: '2', name: 'Michael', avatar: '👨' },
-  { id: '3', name: 'Emma', avatar: '👧' },
-  { id: '4', name: 'Alex', avatar: '👦' },
-];
