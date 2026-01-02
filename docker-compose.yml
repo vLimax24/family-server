@@ -1,0 +1,31 @@
+version: "3.9"
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: dev # switch to 'prod' for production image
+    container_name: family-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app # hot reload
+    environment:
+      PYTHONUNBUFFERED: 1
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: dev
+    container_name: family-frontend
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app # bind mount your source for hot reload
+      - /app/node_modules # anonymous volume for container node_modules
+    env_file:
+      - /frontend/.env
+    depends_on:
+      - backend
