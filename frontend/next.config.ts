@@ -1,11 +1,15 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
+  // Use Turbopack for production builds
+  turbopack: {},
+
+  // Use webpack polling only in development
   webpack(config, { dev }) {
     if (dev) {
       config.watchOptions = {
-        poll: 1000, // Check for file changes every second
-        aggregateTimeout: 300, // Wait 300ms after a change before rebuilding
+        poll: 1000,
+        aggregateTimeout: 300,
       };
     }
     return config;
