@@ -87,31 +87,6 @@ export function TaskCarousel({ items }: TaskCarouselProps) {
 
   return (
     <div className="relative flex h-full w-full items-center justify-center">
-      {/* Navigation Arrows */}
-      {items.length > 1 && (
-        <>
-          <button
-            onClick={goToPrev}
-            className="absolute left-2 z-10 flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 bg-white/95 shadow-lg backdrop-blur-sm transition-all hover:scale-105 hover:bg-white hover:shadow-xl active:scale-95 sm:left-4 sm:h-12 sm:w-12 md:left-6 md:h-14 md:w-14 lg:left-8 lg:h-16 lg:w-16"
-          >
-            <ChevronLeft
-              className="h-5 w-5 text-gray-700 sm:h-6 sm:w-6 md:h-7 md:w-7 lg:h-8 lg:w-8"
-              strokeWidth={2.5}
-            />
-          </button>
-
-          <button
-            onClick={goToNext}
-            className="absolute right-2 z-10 flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 bg-white/95 shadow-lg backdrop-blur-sm transition-all hover:scale-105 hover:bg-white hover:shadow-xl active:scale-95 sm:right-4 sm:h-12 sm:w-12 md:right-6 md:h-14 md:w-14 lg:right-8 lg:h-16 lg:w-16"
-          >
-            <ChevronRight
-              className="h-5 w-5 text-gray-700 sm:h-6 sm:w-6 md:h-7 md:w-7 lg:h-8 lg:w-8"
-              strokeWidth={2.5}
-            />
-          </button>
-        </>
-      )}
-
       {/* Carousel Container */}
       <div
         ref={containerRef}
@@ -147,6 +122,31 @@ export function TaskCarousel({ items }: TaskCarouselProps) {
           })}
         </div>
       </div>
+
+      {/* Navigation Arrows - Rendered after carousel to ensure higher stacking */}
+      {items.length > 1 && (
+        <>
+          <button
+            onClick={goToPrev}
+            className="absolute left-2 z-50 flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 bg-white/95 shadow-lg backdrop-blur-sm transition-all hover:scale-105 hover:bg-white hover:shadow-xl active:scale-95 sm:left-4 sm:h-12 sm:w-12 md:left-6 md:h-14 md:w-14 lg:left-8 lg:h-16 lg:w-16"
+          >
+            <ChevronLeft
+              className="h-5 w-5 text-gray-700 sm:h-6 sm:w-6 md:h-7 md:w-7 lg:h-8 lg:w-8"
+              strokeWidth={2.5}
+            />
+          </button>
+
+          <button
+            onClick={goToNext}
+            className="absolute right-2 z-50 flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 bg-white/95 shadow-lg backdrop-blur-sm transition-all hover:scale-105 hover:bg-white hover:shadow-xl active:scale-95 sm:right-4 sm:h-12 sm:w-12 md:right-6 md:h-14 md:w-14 lg:right-8 lg:h-16 lg:w-16"
+          >
+            <ChevronRight
+              className="h-5 w-5 text-gray-700 sm:h-6 sm:w-6 md:h-7 md:w-7 lg:h-8 lg:w-8"
+              strokeWidth={2.5}
+            />
+          </button>
+        </>
+      )}
 
       {/* Dots Indicator */}
       {items.length > 1 && (
