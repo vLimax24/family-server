@@ -1,0 +1,14 @@
+version: "3.9"
+
+services:
+  backend:
+    build:
+      target: prod
+    restart: unless-stopped
+
+  frontend:
+    build:
+      target: prod
+    env_file:
+      - ./frontend/.env
+    restart: unless-stopped

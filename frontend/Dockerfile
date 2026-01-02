@@ -8,11 +8,10 @@ COPY package.json package-lock.json ./
 # Install all dependencies + optional binaries for lightningcss
 RUN npm ci
 RUN npm install lightningcss-linux-arm64-musl lightningcss-linux-x64-gnu lightningcss-linux-x64-musl --save-optional
-RUN npm rebuild lightningcss --build-from-source
 
 COPY . /app
 
-# Build Next.js
+# Build Next.js (after lightningcss is installed)
 RUN npm run build
 
 # Stage 2: Production
@@ -24,6 +23,8 @@ ENV NODE_ENV=production
 COPY --from=builder /app/package.json /app/package-lock.json ./
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
+# Also copy next.config if you have one
+COPY --from=builder /app/next.config.* ./
 
 RUN npm ci --omit=dev
 

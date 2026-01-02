@@ -24,14 +24,20 @@ FROM python:3.11-slim AS prod
 
 WORKDIR /app
 
+# Copy Python packages from builder
+COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
+
+# Copy app code
 COPY --from=builder /app /app
 
 EXPOSE 8000
 
-# Run FastAPI dev server (dev/prod can be switched with --target in build)
 CMD ["fastapi", "run", "app.py", "--host", "0.0.0.0", "--port", "8000"]
 
+# -----------------------------
 # Stage: Dev
+# -----------------------------
 FROM builder AS dev
 EXPOSE 8000
 CMD ["fastapi", "dev", "app.py", "--host", "0.0.0.0", "--port", "8000"]
