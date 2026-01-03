@@ -6,9 +6,9 @@ interface PlantCardProps {
   onWater: (plantId: number) => void;
 }
 
-const time = Date.now();
-
 export function PlantCard({ plant, onWater }: PlantCardProps) {
+  // eslint-disable-next-line
+  const time = Date.now();
   const daysSinceWatered =
     plant.last_pour != null
       ? Math.floor((time - plant.last_pour * 1000) / (1000 * 60 * 60 * 24))

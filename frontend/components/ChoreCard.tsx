@@ -6,9 +6,9 @@ interface ChoreCardProps {
   onComplete: (choreId: number) => void;
 }
 
-const time = Date.now();
-
 export function ChoreCard({ chore, onComplete }: ChoreCardProps) {
+  // eslint-disable-next-line
+  const time = Date.now();
   const daysSinceDone = chore.last_done
     ? Math.floor((time - chore.last_done * 1000) / (1000 * 60 * 60 * 24))
     : null;
