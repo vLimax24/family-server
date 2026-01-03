@@ -62,7 +62,7 @@ def getUnavailablePersons():
 
 # ---------- AVAILABILITY MANAGEMENT ----------
 
-def setPersonAvailability(person_id, is_available, until_timestamp=None):
+def setPersonAvailability(person_id, is_available, until_timestamp=None, since_timestamp=None):
     """
     Set person availability and trigger task redistribution/restoration
     """
@@ -73,23 +73,45 @@ def setPersonAvailability(person_id, is_available, until_timestamp=None):
     cursor.execute("SELECT is_available FROM person WHERE id = ?", (person_id,))
     current_status = cursor.fetchone()['is_available']
     
-    # Update availability
-    if until_timestamp:
+    # Case 1: Becoming unavailable (first time)
+    if current_status == 1 and is_available == 0:
         cursor.execute("""
             UPDATE person 
             SET is_available = ?,
-                unavailable_since = CASE WHEN ? = 0 THEN CAST(strftime('%s', 'now') AS INTEGER) ELSE unavailable_since END,
+                unavailable_since = COALESCE(?, CAST(strftime('%s', 'now') AS INTEGER)),
                 unavailable_until = ?
             WHERE id = ?
-        """, (is_available, is_available, until_timestamp, person_id))
-    else:
+        """, (is_available, since_timestamp, until_timestamp, person_id))
+        connection.commit()
+        result = redistributeTasks(person_id)
+        return {"status": "unavailable", "redistribution": result}
+    
+    # Case 2: Becoming available (returning)
+    elif current_status == 0 and is_available == 1:
         cursor.execute("""
             UPDATE person 
             SET is_available = ?,
-                unavailable_since = CASE WHEN ? = 0 THEN CAST(strftime('%s', 'now') AS INTEGER) ELSE NULL END,
+                unavailable_since = NULL,
                 unavailable_until = NULL
             WHERE id = ?
-        """, (is_available, is_available, person_id))
+        """, (is_available, person_id))
+        connection.commit()
+        result = restoreTasks(person_id)
+        return {"status": "available", "restoration": result}
+    
+    # Case 3: Already unavailable, just updating dates
+    elif current_status == 0 and is_available == 0:
+        cursor.execute("""
+            UPDATE person 
+            SET unavailable_until = ?
+            WHERE id = ?
+        """, (until_timestamp, person_id))
+        connection.commit()
+        return {"status": "dates_updated"}
+    
+    # Case 4: Already available, no change
+    else:
+        return {"status": "no_change"}
     
     connection.commit()
     
