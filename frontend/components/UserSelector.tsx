@@ -22,7 +22,10 @@ export function UserSelector({ members, onSelectMember }: UserSelectorProps) {
       <div className="w-full max-w-6xl space-y-8 select-none sm:space-y-10 lg:space-y-12">
         <div className="space-y-2 text-center sm:space-y-3">
           <div className="inline-block">
-            <h2 className="bg-linear-to-r from-slate-800 via-slate-700 to-slate-900 bg-clip-text text-3xl font-bold text-transparent sm:text-4xl md:text-5xl lg:text-6xl">
+            <h2
+              className="bg-linear-to-r from-slate-800 via-slate-700 to-slate-900 bg-clip-text text-3xl font-bold text-transparent sm:text-4xl md:text-5xl lg:text-6xl"
+              suppressHydrationWarning
+            >
               {getGreeting()}
             </h2>
             <div className="mt-1 h-0.5 rounded-full bg-linear-to-r from-transparent via-emerald-500 to-transparent sm:mt-2 sm:h-1"></div>
