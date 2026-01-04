@@ -2,6 +2,9 @@ export interface FamilyMember {
   id: number;
   name: string;
   role: string;
+  is_available: number;
+  unavailable_since: number | null;
+  unavailable_until: number | null;
 }
 
 export interface Plant {
@@ -39,4 +42,11 @@ export interface StatusConfig {
   buttonHoverColor: string;
   buttonShadowColor: string;
   dotColor: string;
+}
+
+export interface SetAvailability {
+  person_id: number;
+  is_available: number;
+  unavailable_since: number | null;
+  unavailable_until: number | null;
 }

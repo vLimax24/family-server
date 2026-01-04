@@ -1,8 +1,7 @@
-interface FamilyMember {
-  id: number;
-  name: string;
-  role: string;
-}
+import { Badge } from '@/components/ui/badge';
+import { AvailabilityDialog } from './AvailabilityDialog';
+import { FamilyMember } from '@/lib/types';
+import { useState, useEffect } from 'react';
 
 interface UserSelectorProps {
   members: FamilyMember[];
@@ -10,11 +9,25 @@ interface UserSelectorProps {
 }
 
 export function UserSelector({ members, onSelectMember }: UserSelectorProps) {
+  const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>(members);
+
+  useEffect(() => {
+    setFamilyMembers(members);
+  }, [members]);
+
   const getGreeting = () => {
     const hour = new Date().getHours();
     if (hour < 12) return 'Guten Morgen';
     if (hour < 18) return 'Guten Tag';
     return 'Guten Abend';
+  };
+
+  const handleAvailabilityChange = (memberId: number, newAvailability: number) => {
+    setFamilyMembers((prev) =>
+      prev.map((member) =>
+        member.id === memberId ? { ...member, is_available: newAvailability } : member,
+      ),
+    );
   };
 
   return (
@@ -36,28 +49,48 @@ export function UserSelector({ members, onSelectMember }: UserSelectorProps) {
         </div>
 
         <div className="grid grid-cols-2 gap-4 sm:gap-6 md:grid-cols-3 lg:grid-cols-4 lg:gap-8">
-          {members.map((member) => (
-            <button
+          {familyMembers.map((member) => (
+            <div
               key={member.id}
-              onClick={() => onSelectMember(member)}
-              className="group relative flex flex-col items-center gap-3 rounded-2xl border border-slate-200 bg-white/80 p-4 backdrop-blur-sm transition-all duration-300 hover:scale-105 hover:bg-white hover:shadow-xl hover:shadow-slate-200 sm:gap-4 sm:rounded-3xl sm:p-6 lg:gap-6 lg:p-8"
+              className="flex flex-col gap-2"
             >
-              <div className="relative">
-                <div className="flex h-20 w-20 items-center justify-center rounded-full bg-linear-to-br from-slate-100 via-slate-50 to-slate-100 text-4xl shadow-lg shadow-slate-200 transition-all duration-300 group-hover:from-blue-50 group-hover:to-indigo-50 sm:h-24 sm:w-24 sm:text-5xl lg:h-32 lg:w-32 lg:text-6xl">
-                  {member.name == 'Linas'
-                    ? '🧑'
-                    : member.name == 'Amelie'
-                      ? '👧'
-                      : member.name == 'Katrin'
-                        ? '👩'
-                        : '👨'}
+              <Badge
+                variant="outline"
+                className={`mx-auto w-fit text-xs font-medium ${
+                  member.is_available == 1
+                    ? 'border-emerald-300 bg-emerald-50 text-emerald-700'
+                    : 'border-amber-300 bg-amber-50 text-amber-700'
+                }`}
+              >
+                {member.is_available == 1 ? '✓ Verfügbar' : '⏸ Abwesend'}
+              </Badge>
+              <button
+                onClick={() => onSelectMember(member)}
+                className="group relative flex flex-col items-center gap-3 rounded-2xl border border-slate-200 bg-white/80 p-4 backdrop-blur-sm transition-all duration-300 hover:scale-105 hover:bg-white hover:shadow-xl hover:shadow-slate-200 sm:gap-4 sm:rounded-3xl sm:p-6 lg:gap-6 lg:p-8"
+              >
+                <div className="relative">
+                  <div className="flex h-20 w-20 items-center justify-center rounded-full bg-linear-to-br from-slate-100 via-slate-50 to-slate-100 text-4xl shadow-lg shadow-slate-200 transition-all duration-300 group-hover:from-blue-50 group-hover:to-indigo-50 sm:h-24 sm:w-24 sm:text-5xl lg:h-32 lg:w-32 lg:text-6xl">
+                    {member.name == 'Linas'
+                      ? '🧑'
+                      : member.name == 'Amelie'
+                        ? '👧'
+                        : member.name == 'Katrin'
+                          ? '👩'
+                          : '👨'}
+                  </div>
                 </div>
-              </div>
 
-              <span className="text-lg font-semibold text-slate-700 transition-colors duration-300 group-hover:text-slate-900 sm:text-xl lg:text-2xl">
-                {member.name}
-              </span>
-            </button>
+                <span className="text-lg font-semibold text-slate-700 transition-colors duration-300 group-hover:text-slate-900 sm:text-xl lg:text-2xl">
+                  {member.name}
+                </span>
+              </button>
+              <div className="mx-auto w-fit">
+                <AvailabilityDialog
+                  member={member}
+                  onAvailabilityChange={handleAvailabilityChange}
+                />
+              </div>
+            </div>
           ))}
         </div>
 
