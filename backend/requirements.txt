@@ -1,6 +1,0 @@
-fastapi[standard]==0.128.0
-python-dotenv==1.2.1
-pydantic==2.12.5
-pydantic-settings==2.12.0
-python-multipart==0.0.21
-anyio==4.12.0
