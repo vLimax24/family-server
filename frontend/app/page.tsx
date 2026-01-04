@@ -67,6 +67,23 @@ export default function Page() {
     }
   };
 
+  const handleMemberAvailabilityChange = (memberId: number, newAvailability: number) => {
+    // Update the selected member if they're the one who changed
+    if (selectedMember && selectedMember.id === memberId) {
+      setSelectedMember({
+        ...selectedMember,
+        is_available: newAvailability,
+      });
+    }
+
+    // Also update in the familyMembers list (optional, for consistency)
+    setFamilyMembers((prev) =>
+      prev.map((member) =>
+        member.id === memberId ? { ...member, is_available: newAvailability } : member,
+      ),
+    );
+  };
+
   // Erstelle Carousel-Items
   const allTasks = [
     ...plants.map((plant) => (
@@ -93,6 +110,7 @@ export default function Page() {
             <UserSelector
               members={familyMembers}
               onSelectMember={setSelectedMember}
+              onMemberAvailabilityChange={handleMemberAvailabilityChange}
             />
           </div>
         ) : (

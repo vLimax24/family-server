@@ -6,9 +6,14 @@ import { useState, useEffect } from 'react';
 interface UserSelectorProps {
   members: FamilyMember[];
   onSelectMember: (member: FamilyMember) => void;
+  onMemberAvailabilityChange: (memberId: number, newAvailability: number) => void;
 }
 
-export function UserSelector({ members, onSelectMember }: UserSelectorProps) {
+export function UserSelector({
+  members,
+  onSelectMember,
+  onMemberAvailabilityChange,
+}: UserSelectorProps) {
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>(members);
 
   useEffect(() => {
@@ -28,6 +33,8 @@ export function UserSelector({ members, onSelectMember }: UserSelectorProps) {
         member.id === memberId ? { ...member, is_available: newAvailability } : member,
       ),
     );
+
+    onMemberAvailabilityChange(memberId, newAvailability);
   };
 
   return (

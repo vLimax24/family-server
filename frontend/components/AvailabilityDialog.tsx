@@ -12,7 +12,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FamilyMember } from '@/lib/types';
 import { Switch } from './ui/switch';
-import { ChevronDownIcon, CalendarIcon } from 'lucide-react';
+import { CalendarIcon } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -73,10 +73,11 @@ export const AvailabilityDialog = (props: {
           className="w-full border border-slate-200/60 bg-white/50 text-slate-700 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900"
         >
           <CalendarIcon className="mr-2 h-3.5 w-3.5" />
-          Verfügbarkeit ändern
+          <span className="hidden sm:inline">Verfügbarkeit ändern</span>
+          <span className="sm:hidden">Verfügbarkeit</span>
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-125">
         <form onSubmit={submitAvailabilityForm}>
           <DialogHeader className="space-y-3 pb-4">
             <DialogTitle className="text-xl">Verfügbarkeit für {props.member.name}</DialogTitle>
