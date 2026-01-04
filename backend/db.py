@@ -1,14 +1,22 @@
 import sqlite3
+from pathlib import Path
 from models import sql_statements
 from config import DATABASE_NAME
 
-with sqlite3.connect(DATABASE_NAME) as connection:
+# Check if database needs initialization
+db_path = Path(DATABASE_NAME)
+needs_init = not db_path.exists()
 
-    connection.row_factory = sqlite3.Row
+# Create connection
+connection = sqlite3.connect(DATABASE_NAME, check_same_thread=False)
+connection.row_factory = sqlite3.Row
+cursor = connection.cursor()
 
-    cursor = connection.cursor()
-
-    for i in sql_statements:
-        cursor.execute(i)
-
+if needs_init:
+    print(f"Initializing new database: {DATABASE_NAME}")
+    for statement in sql_statements:
+        cursor.execute(statement)
     connection.commit()
+    print("✓ Database initialized!")
+else:
+    print(f"Using existing database: {DATABASE_NAME}")

@@ -2,6 +2,8 @@ services:
   backend:
     build:
       target: prod
+    environment:
+      - ENV=production
     restart: unless-stopped
     volumes:
       - backend-db-prod:/app/data

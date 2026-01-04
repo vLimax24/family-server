@@ -1,11 +1,5 @@
-from config import DATABASE_NAME
-import sqlite3
+from db import cursor, connection
 import json
-
-connection = sqlite3.connect(DATABASE_NAME, check_same_thread=False)
-connection.row_factory = sqlite3.Row
-cursor = connection.cursor()
-
 
 
 # ---------- Helper Validation Utilities ----------
@@ -484,7 +478,7 @@ def getDuePlantsOfPerson(person_id):
                    SELECT *
                    FROM plant
                    WHERE (owner_id = ? OR temporary_owner_id = ?)
-                     AND (last_pour IS NULL OR date(last_done, 'unixepoch', '+' || interval || ' days') <= date('now'))
+                     AND (last_pour IS NULL OR date(last_pour, 'unixepoch', '+' || interval || ' days') <= date('now'))
                    """, (person_id, person_id))
     return [dict(row) for row in cursor.fetchall()]
 
