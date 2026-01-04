@@ -112,20 +112,6 @@ def setPersonAvailability(person_id, is_available, until_timestamp=None, since_t
     # Case 4: Already available, no change
     else:
         return {"status": "no_change"}
-    
-    connection.commit()
-    
-    # If becoming unavailable, redistribute tasks
-    if current_status == 1 and is_available == 0:
-        result = redistributeTasks(person_id)
-        return {"status": "unavailable", "redistribution": result}
-    
-    # If becoming available, restore tasks
-    elif current_status == 0 and is_available == 1:
-        result = restoreTasks(person_id)
-        return {"status": "available", "restoration": result}
-    
-    return {"status": "no_change"}
 
 
 # ---------- ROTATION HELPER FUNCTIONS ----------

@@ -15,7 +15,7 @@ class ChoreCreate(BaseModel):
     interval: int
     worker_id: int
 
-class SetAvailabilty(BaseModel):
+class SetAvailability(BaseModel):
     person_id: int
     is_available: int
     unavailable_since: int | None = None
@@ -47,7 +47,7 @@ async def read_singlePerson(person_id: int):
     return methods.getPersonById(person_id)
 
 @app.patch("/persons/setAvailability/")
-async def setPersonAvailability(data: SetAvailabilty):
+async def setPersonAvailability(data: SetAvailability):
     return methods.setPersonAvailability(person_id=data.person_id, is_available=data.is_available, until_timestamp=data.unavailable_until, since_timestamp=data.unavailable_since)
 
 @app.get("/dashboard/{person_id}")
