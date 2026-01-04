@@ -1,7 +1,8 @@
 import { FamilyMember, Plant, Chore } from '@/lib/types';
+import { SetAvailability } from '@/lib/types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
-console.log(API_BASE_URL)
+console.log(API_BASE_URL);
 
 interface DashboardResponse {
   duePlants: Plant[];
@@ -40,19 +41,26 @@ export const apiService = {
 
     return {
       plants: data.duePlants,
-      chores: data.dueChores
+      chores: data.dueChores,
     };
   },
 
   async waterPlant(plantId: number): Promise<void> {
     await fetchApi(`/plant/${plantId}/water`, {
-      method: 'PATCH'
+      method: 'PATCH',
     });
   },
 
   async completeChore(choreId: number): Promise<void> {
     await fetchApi(`/chore/${choreId}/done`, {
-      method: 'PATCH'
+      method: 'PATCH',
+    });
+  },
+
+  async setAvailability(data: SetAvailability): Promise<void> {
+    await fetchApi(`/persons/setAvailability/`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
     });
   },
 };
