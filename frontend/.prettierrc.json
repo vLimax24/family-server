@@ -1,0 +1,41 @@
+{
+  "printWidth": 100,
+  "tabWidth": 2,
+  "useTabs": false,
+  "semi": true,
+  "singleQuote": true,
+  "quoteProps": "consistent",
+  "trailingComma": "all",
+  "bracketSpacing": true,
+  "bracketSameLine": false,
+  "arrowParens": "always",
+  "endOfLine": "lf",
+  "singleAttributePerLine": true,
+
+  "plugins": [
+    "prettier-plugin-tailwindcss"
+  ],
+
+  "overrides": [
+    {
+      "files": "*.md",
+      "options": { "proseWrap": "always" }
+    },
+    {
+      "files": ["*.yml", "*.yaml"],
+      "options": { "singleQuote": false }
+    },
+    {
+      "files": ["*.json", "*.jsonc"],
+      "options": { "trailingComma": "none" }
+    },
+    {
+      "files": ["*.css", "*.scss", "*.less"],
+      "options": { "singleQuote": false }
+    },
+    {
+      "files": ["**/next.config.*", "**/postcss.config.*", "**/tailwind.config.*"],
+      "options": { "printWidth": 120 }
+    }
+  ]
+}
