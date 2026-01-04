@@ -3,6 +3,7 @@
 *.db-journal
 *.db-wal
 *.db-shm
+data/
 
 # Python (backend)
 __pycache__/
