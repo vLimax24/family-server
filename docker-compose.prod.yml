@@ -3,6 +3,8 @@ services:
     build:
       target: prod
     restart: unless-stopped
+    volumes:
+      - backend-db-prod:/app/data
 
   frontend:
     build:
@@ -10,3 +12,5 @@ services:
     env_file:
       - ./frontend/.env
     restart: unless-stopped
+volumes:
+  backend-db-prod:

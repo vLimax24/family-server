@@ -8,6 +8,8 @@ services:
       - "8000:8000"
     environment:
       PYTHONUNBUFFERED: 1
+    volumes:
+      - backend-db:/app/data
 
   frontend:
     build:

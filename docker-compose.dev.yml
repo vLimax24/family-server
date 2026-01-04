@@ -4,6 +4,7 @@ services:
       target: dev
     volumes:
       - ./backend:/app
+      - backend-db-dev:/app/data
 
   frontend:
     build:
@@ -14,3 +15,6 @@ services:
       - /app/.next # Keep build cache stable
     env_file:
       - ./frontend/.env
+
+volumes:
+  backend-db-dev:
