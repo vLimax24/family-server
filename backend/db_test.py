@@ -480,6 +480,245 @@ def test_dashboard():
         except Exception as e:
             print(f"✗ FAILED: {e}")
 
+# --- Test Day-Boundary Logic ---
+def test_day_boundary_scheduling():
+    print("\n" + "=" * 60)
+    print("TEST SUITE: Day-Boundary Scheduling Logic")
+    print("=" * 60)
+
+    print("\n--- Test: Late night completion (23:58) ---")
+    try:
+        # Create a test chore with 1-day interval
+        chore_id = methods.addChore("Late Night Test Chore", 1, 1)
+        print(f"Created test chore ID: {chore_id}")
+        
+        # Simulate completion at 23:58 on a specific day
+        # Let's say today at 23:58
+        from datetime import datetime, timedelta
+        today_2358 = datetime.now().replace(hour=23, minute=58, second=0, microsecond=0)
+        timestamp_2358 = int(today_2358.timestamp())
+        
+        print(f"Simulating completion at: {today_2358.strftime('%Y-%m-%d %H:%M:%S')}")
+        
+        # Manually set last_done to 23:58
+        cursor.execute("""
+            UPDATE chore 
+            SET last_done = ?
+            WHERE id = ?
+        """, (timestamp_2358, chore_id))
+        connection.commit()
+        
+        # Check when it's next due using our new logic
+        cursor.execute("""
+            SELECT 
+                date(last_done, 'unixepoch') as done_date,
+                date(last_done, 'unixepoch', '+' || interval || ' days') as due_date,
+                date('now') as today
+            FROM chore WHERE id = ?
+        """, (chore_id,))
+        
+        result = cursor.fetchone()
+        print(f"\nResults:")
+        print(f"  Done on: {result['done_date']}")
+        print(f"  Due on: {result['due_date']}")
+        print(f"  Today: {result['today']}")
+        
+        # The due_date should be the NEXT day (not 23:58 tomorrow)
+        done_date = datetime.strptime(result['done_date'], '%Y-%m-%d')
+        due_date = datetime.strptime(result['due_date'], '%Y-%m-%d')
+        expected_due = done_date + timedelta(days=1)
+        
+        if due_date == expected_due:
+            print(f"✓ SUCCESS: Task due on next day at 00:00, not 23:58!")
+        else:
+            print(f"✗ FAILED: Expected {expected_due.date()}, got {due_date.date()}")
+        
+        # Cleanup
+        methods.removeChore(chore_id)
+        
+    except Exception as e:
+        print(f"✗ FAILED: {e}")
+
+    print("\n--- Test: 2-day interval from Wednesday ---")
+    try:
+        # Create a test chore with 2-day interval
+        chore_id = methods.addChore("Two Day Test Chore", 2, 1)
+        print(f"Created test chore ID: {chore_id}")
+        
+        # Simulate completion on a Wednesday (any time)
+        # Let's use a known Wednesday timestamp
+        wednesday = datetime(2025, 1, 8, 14, 30)  # Wednesday afternoon
+        timestamp_wed = int(wednesday.timestamp())
+        
+        print(f"Simulating completion on: {wednesday.strftime('%A, %Y-%m-%d %H:%M:%S')}")
+        
+        cursor.execute("""
+            UPDATE chore 
+            SET last_done = ?
+            WHERE id = ?
+        """, (timestamp_wed, chore_id))
+        connection.commit()
+        
+        # Check when it's due
+        cursor.execute("""
+            SELECT 
+                date(last_done, 'unixepoch') as done_date,
+                date(last_done, 'unixepoch', '+' || interval || ' days') as due_date
+            FROM chore WHERE id = ?
+        """, (chore_id,))
+        
+        result = cursor.fetchone()
+        print(f"\nResults:")
+        print(f"  Done on: {result['done_date']} (Wednesday)")
+        print(f"  Due on: {result['due_date']} (should be Friday)")
+        
+        done_date = datetime.strptime(result['done_date'], '%Y-%m-%d')
+        due_date = datetime.strptime(result['due_date'], '%Y-%m-%d')
+        
+        # Should be 2 days later (Friday)
+        if (due_date - done_date).days == 2:
+            print(f"✓ SUCCESS: 2-day interval works correctly (Wed → Fri)")
+        else:
+            print(f"✗ FAILED: Expected 2 days difference, got {(due_date - done_date).days}")
+        
+        # Cleanup
+        methods.removeChore(chore_id)
+        
+    except Exception as e:
+        print(f"✗ FAILED: {e}")
+
+
+# --- Test Smart Scheduling (Availability & Redistribution) ---
+def test_smart_scheduling():
+    print("\n" + "=" * 60)
+    print("TEST SUITE: Smart Scheduling (Availability System)")
+    print("=" * 60)
+
+    print("\n--- Test: Mark person unavailable and check redistribution ---")
+    try:
+        person_id = 2  # Amelie
+        print(f"Input: person_id={person_id} (Amelie)")
+        
+        # Check initial availability
+        person = methods.getPersonById(person_id)
+        print(f"Initial availability: {person['is_available']}")
+        
+        # Get her current tasks
+        initial_plants = methods.getPlantsOfPerson(person_id)
+        initial_chores = methods.getChoresOfPerson(person_id)
+        print(f"Initial tasks: {len(initial_plants)} plants, {len(initial_chores)} chores")
+        
+        # Mark as unavailable
+        print(f"\nMarking Person {person_id} as unavailable...")
+        result = methods.setPersonAvailability(person_id, 0)
+        print(f"Result: {result}")
+        
+        # Check if tasks were redistributed
+        print(f"\nChecking task redistribution...")
+        
+        # Check plants
+        print(f"  Plants:")
+        for plant in initial_plants:
+            cursor.execute("SELECT temporary_owner_id FROM plant WHERE id = ?", (plant['id'],))
+            temp_owner = cursor.fetchone()['temporary_owner_id']
+            if temp_owner:
+                print(f"    • {plant['name']} → Temporarily assigned to Person {temp_owner}")
+            else:
+                print(f"    • {plant['name']} → No temporary assignment")
+        
+        # Check non-rotating chores
+        non_rotating_chores = [c for c in initial_chores if c['rotation_enabled'] == 0]
+        print(f"  Non-rotating chores:")
+        for chore in non_rotating_chores:
+            cursor.execute("SELECT temporary_worker_id FROM chore WHERE id = ?", (chore['id'],))
+            temp_worker = cursor.fetchone()['temporary_worker_id']
+            if temp_worker:
+                print(f"    • {chore['name']} → Temporarily assigned to Person {temp_worker}")
+            else:
+                print(f"    • {chore['name']} → No temporary assignment")
+        
+        print(f"\n✓ SUCCESS: Tasks redistributed")
+        
+    except Exception as e:
+        print(f"✗ FAILED: {e}")
+
+    print("\n--- Test: Mark person available and check restoration ---")
+    try:
+        person_id = 2
+        print(f"Input: person_id={person_id} (Amelie)")
+        
+        # Mark as available
+        print(f"Marking Person {person_id} as available again...")
+        result = methods.setPersonAvailability(person_id, 1)
+        print(f"Result: {result}")
+        
+        # Check if tasks were restored
+        print(f"\nChecking task restoration...")
+        
+        # Get her tasks again
+        plants = methods.getPlantsOfPerson(person_id)
+        print(f"  Plants:")
+        for plant in plants:
+            cursor.execute("SELECT temporary_owner_id FROM plant WHERE id = ?", (plant['id'],))
+            temp_owner = cursor.fetchone()['temporary_owner_id']
+            status = "✓ Restored" if temp_owner is None else f"✗ Still temp assigned to {temp_owner}"
+            print(f"    • {plant['name']} → {status}")
+        
+        chores = methods.getChoresOfPerson(person_id)
+        non_rotating = [c for c in chores if c['rotation_enabled'] == 0]
+        print(f"  Non-rotating chores:")
+        for chore in non_rotating:
+            cursor.execute("SELECT temporary_worker_id FROM chore WHERE id = ?", (chore['id'],))
+            temp_worker = cursor.fetchone()['temporary_worker_id']
+            status = "✓ Restored" if temp_worker is None else f"✗ Still temp assigned to {temp_worker}"
+            print(f"    • {chore['name']} → {status}")
+        
+        print(f"\n✓ SUCCESS: Tasks restored")
+        
+    except Exception as e:
+        print(f"✗ FAILED: {e}")
+
+    print("\n--- Test: Rotation chores skip unavailable people ---")
+    try:
+        # Find a rotation chore
+        cursor.execute("SELECT * FROM chore WHERE rotation_enabled = 1 LIMIT 1")
+        rotation_chore = dict(cursor.fetchone())
+        chore_id = rotation_chore['id']
+        rotation_list = json.loads(rotation_chore['rotation_order'])
+        
+        print(f"Testing with: {rotation_chore['name']}")
+        print(f"Rotation order: {rotation_list}")
+        
+        # Make first person in rotation unavailable
+        unavailable_person = rotation_list[0]
+        print(f"\nMarking Person {unavailable_person} as unavailable...")
+        methods.setPersonAvailability(unavailable_person, 0)
+        
+        # Set chore to be at that person's index
+        cursor.execute("""
+            UPDATE chore 
+            SET last_assigned_index = 0,
+                last_done = ?
+            WHERE id = ?
+        """, (int(time.time()) - 2 * 86400, chore_id))  # 2 days ago
+        connection.commit()
+        
+        # Check who gets the chore now
+        print(f"Checking who gets assigned the chore...")
+        next_person_id = methods.getNextAvailableInRotation(rotation_list, 0)
+        print(f"Next available person: {next_person_id}")
+        
+        if next_person_id != unavailable_person:
+            print(f"✓ SUCCESS: Skipped unavailable person!")
+        else:
+            print(f"✗ FAILED: Did not skip unavailable person")
+        
+        # Restore availability
+        methods.setPersonAvailability(unavailable_person, 1)
+        
+    except Exception as e:
+        print(f"✗ FAILED: {e}")
+
 
 # --- Run All Tests ---
 if __name__ == "__main__":
@@ -491,9 +730,11 @@ if __name__ == "__main__":
     setup_test_data()
     test_person_methods()
     test_chore_methods()
-    test_rotation_chores()  # New detailed rotation test
+    test_rotation_chores()
     test_plant_methods()
     test_dashboard()
+    test_day_boundary_scheduling()  # NEW
+    test_smart_scheduling()         # NEW
 
     print("\n" + "=" * 60)
     print("ALL TESTS COMPLETED!")

@@ -356,7 +356,7 @@ def getDueChoresOfPerson(person_id):
     cursor.execute("""
                    SELECT *
                    FROM chore
-                   WHERE (last_done IS NULL OR last_done + interval * 86400 <= CAST(strftime('%s','now') AS INTEGER))
+                   WHERE (last_done IS NULL OR date(last_done, 'unixepoch', '+' || interval || ' days') <= date('now'))
                    """)
     chores = cursor.fetchall()
 
@@ -478,7 +478,7 @@ def getDuePlantsOfPerson(person_id):
                    SELECT *
                    FROM plant
                    WHERE (owner_id = ? OR temporary_owner_id = ?)
-                     AND (last_pour IS NULL OR last_pour + interval * 86400 <= CAST(strftime('%s','now') AS INTEGER))
+                     AND (last_pour IS NULL OR date(last_done, 'unixepoch', '+' || interval || ' days') <= date('now'))
                    """, (person_id, person_id))
     return [dict(row) for row in cursor.fetchall()]
 
