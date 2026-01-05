@@ -10,6 +10,7 @@ import { TaskCarousel } from '@/components/TaskCarousel';
 import { FamilyMember, Plant, Chore } from '@/lib/types';
 import { apiService } from '@/services/apiService';
 import { Button } from '@/components/ui/button';
+import { ManageTasksDialog } from '@/components/ManageTasksDialog';
 
 export default function Page() {
   const [selectedMember, setSelectedMember] = useState<FamilyMember | null>(null);
@@ -22,6 +23,19 @@ export default function Page() {
   useEffect(() => {
     apiService.getFamilyMembers().then(setFamilyMembers).catch(console.error);
   }, []);
+
+  const handleTasksUpdated = () => {
+    // Reload dashboard data
+    if (selectedMember) {
+      apiService
+        .getDashboardData(selectedMember.id)
+        .then(({ plants, chores }) => {
+          setPlants(plants);
+          setChores(chores);
+        })
+        .catch(console.error);
+    }
+  };
 
   // Lade Dashboard-Daten wenn Member ausgewählt
   useEffect(() => {
@@ -186,6 +200,15 @@ export default function Page() {
           </div>
         )}
       </div>
+      {selectedMember && (
+        <ManageTasksDialog
+          open={manageDialogOpen}
+          onOpenChange={setManageDialogOpen}
+          selectedMember={selectedMember}
+          familyMembers={familyMembers}
+          onTasksUpdated={handleTasksUpdated}
+        />
+      )}
     </div>
   );
 }
