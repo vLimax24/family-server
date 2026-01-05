@@ -532,3 +532,78 @@ def getDashboardForPerson(person_id):
         "dueChores": getDueChoresOfPerson(person_id),
         "duePlants": getDuePlantsOfPerson(person_id)
     }
+
+def updatePlant(plant_id, name, interval, owner_id):
+    ensure_positive_int(plant_id, "plant_id")
+    ensure_plant_exists(plant_id)
+    ensure_not_empty(name, "plant name")
+    ensure_positive_int(interval, "interval")
+    ensure_positive_int(owner_id, "owner_id")
+    ensure_person_exists(owner_id)
+    
+    cursor.execute("""
+        UPDATE plant
+        SET name = ?, interval = ?, owner_id = ?
+        WHERE id = ?
+    """, (name.strip(), interval, owner_id, plant_id))
+    
+    connection.commit()
+    return cursor.rowcount > 0
+
+
+def addChoreWithRotation(name, interval, rotation_enabled, rotation_order, worker_id):
+    ensure_not_empty(name, "chore name")
+    ensure_positive_int(interval, "interval")
+    
+    if rotation_enabled:
+        # Validate rotation_order is valid JSON
+        if rotation_order:
+            try:
+                rotation_list = json.loads(rotation_order)
+                if not rotation_list:
+                    raise ValueError("Rotation list cannot be empty")
+            except json.JSONDecodeError:
+                raise ValueError("Invalid rotation order JSON")
+    else:
+        if worker_id is None:
+            raise ValueError("worker_id required when rotation is disabled")
+        ensure_positive_int(worker_id, "worker_id")
+        ensure_person_exists(worker_id)
+    
+    cursor.execute("""
+        INSERT INTO chore (name, interval, rotation_enabled, rotation_order, last_assigned_index, worker_id)
+        VALUES (?, ?, ?, ?, 0, ?)
+    """, (name.strip(), interval, rotation_enabled, rotation_order, worker_id))
+    
+    connection.commit()
+    return cursor.lastrowid
+
+
+def updateChore(chore_id, name, interval, rotation_enabled, rotation_order, worker_id):
+    ensure_positive_int(chore_id, "chore_id")
+    ensure_chore_exists(chore_id)
+    ensure_not_empty(name, "chore name")
+    ensure_positive_int(interval, "interval")
+    
+    if rotation_enabled:
+        if rotation_order:
+            try:
+                rotation_list = json.loads(rotation_order)
+                if not rotation_list:
+                    raise ValueError("Rotation list cannot be empty")
+            except json.JSONDecodeError:
+                raise ValueError("Invalid rotation order JSON")
+    else:
+        if worker_id is None:
+            raise ValueError("worker_id required when rotation is disabled")
+        ensure_positive_int(worker_id, "worker_id")
+        ensure_person_exists(worker_id)
+    
+    cursor.execute("""
+        UPDATE chore
+        SET name = ?, interval = ?, rotation_enabled = ?, rotation_order = ?, worker_id = ?
+        WHERE id = ?
+    """, (name.strip(), interval, rotation_enabled, rotation_order, worker_id, chore_id))
+    
+    connection.commit()
+    return cursor.rowcount > 0
