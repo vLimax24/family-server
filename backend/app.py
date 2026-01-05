@@ -19,7 +19,19 @@ class SetAvailability(BaseModel):
     person_id: int
     is_available: int
     unavailable_since: int | None = None
-    unavailable_until: int | None = None 
+    unavailable_until: int | None = None
+
+class PlantUpdate(BaseModel):
+    name: str
+    interval: int
+    owner_id: int
+
+class ChoreUpdate(BaseModel):
+    name: str
+    interval: int
+    rotation_enabled: int
+    rotation_order: str | None = None
+    worker_id: int | None = None 
 
 # Endpoints
 
@@ -93,3 +105,73 @@ async def deleteChore(chore_id: int):
     if not updated:
         raise HTTPException(404, "Chore not deleted.")
     return {"status": "Chore deleted successfully."}
+
+class PlantUpdate(BaseModel):
+    name: str
+    interval: int
+    owner_id: int
+
+class ChoreUpdate(BaseModel):
+    name: str
+    interval: int
+    rotation_enabled: int
+    rotation_order: str | None = None
+    worker_id: int | None = None
+
+# Add these endpoints:
+
+@app.get("/plants/person/{person_id}")
+async def get_plants_of_person(person_id: int):
+    plants = methods.getPlantsOfPerson(person_id)
+    if plants is None:
+        raise HTTPException(404, "No plants found")
+    return plants
+
+@app.get("/chores/person/{person_id}")
+async def get_chores_of_person(person_id: int):
+    chores = methods.getChoresOfPerson(person_id)
+    if chores is None:
+        raise HTTPException(404, "No chores found")
+    return chores
+
+@app.post("/plant/create")
+async def create_plant(data: PlantCreate):
+    plant_id = methods.addPlant(data.name, data.interval, data.owner_id, data.image)
+    if not plant_id:
+        raise HTTPException(400, "Plant not created")
+    return {"status": "Plant created successfully", "id": plant_id}
+
+@app.patch("/plant/update/{plant_id}")
+async def update_plant(plant_id: int, data: PlantUpdate):
+    # You'll need to create this method in methods.py
+    updated = methods.updatePlant(plant_id, data.name, data.interval, data.owner_id)
+    if not updated:
+        raise HTTPException(404, "Plant not updated")
+    return {"status": "Plant updated successfully"}
+
+@app.post("/chore/create")
+async def create_chore(data: ChoreUpdate):
+    chore_id = methods.addChoreWithRotation(
+        data.name, 
+        data.interval, 
+        data.rotation_enabled,
+        data.rotation_order,
+        data.worker_id
+    )
+    if not chore_id:
+        raise HTTPException(400, "Chore not created")
+    return {"status": "Chore created successfully", "id": chore_id}
+
+@app.patch("/chore/update/{chore_id}")
+async def update_chore(chore_id: int, data: ChoreUpdate):
+    updated = methods.updateChore(
+        chore_id,
+        data.name,
+        data.interval,
+        data.rotation_enabled,
+        data.rotation_order,
+        data.worker_id
+    )
+    if not updated:
+        raise HTTPException(404, "Chore not updated")
+    return {"status": "Chore updated successfully"}
