@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Sprout, ListTodo, Check } from 'lucide-react';
+import { ArrowLeft, Sprout, Settings, ListTodo, Check } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { UserSelector } from '@/components/UserSelector';
 import { PlantCard } from '@/components/PlantCard';
@@ -9,12 +9,14 @@ import { ChoreCard } from '@/components/ChoreCard';
 import { TaskCarousel } from '@/components/TaskCarousel';
 import { FamilyMember, Plant, Chore } from '@/lib/types';
 import { apiService } from '@/services/apiService';
+import { Button } from '@/components/ui/button';
 
 export default function Page() {
   const [selectedMember, setSelectedMember] = useState<FamilyMember | null>(null);
   const [plants, setPlants] = useState<Plant[]>([]);
   const [chores, setChores] = useState<Chore[]>([]);
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
+  const [manageDialogOpen, setManageDialogOpen] = useState<boolean>(false);
 
   // Lade Familie beim Mount
   useEffect(() => {
@@ -162,6 +164,17 @@ export default function Page() {
                     label="Aufgaben ausstehend"
                     color="blue"
                   />
+                  <div className="h-8 w-px bg-gray-200 sm:h-10" />
+                  <Button
+                    className="flex items-center gap-3 rounded-lg border-slate-200 bg-transparent p-2 text-slate-600 transition-all hover:cursor-pointer hover:bg-slate-100 active:scale-95"
+                    onClick={() => setManageDialogOpen(true)}
+                  >
+                    <Settings
+                      className="h-5 w-5 text-slate-600"
+                      strokeWidth={2}
+                    />
+                    <div className="hidden md:inline">Aufgaben Anpassen</div>
+                  </Button>
                 </div>
               </div>
             </div>
