@@ -63,4 +63,74 @@ export const apiService = {
       body: JSON.stringify(data),
     });
   },
+
+  async getChoresOfPerson(personId: number): Promise<Chore[]> {
+    return await fetchApi(`/chores/person/${personId}`, {
+      cache: 'no-store',
+    });
+  },
+
+  async getPlantsOfPerson(personId: number): Promise<Plant[]> {
+    return await fetchApi(`/plants/person/${personId}`, {
+      cache: 'no-store',
+    });
+  },
+
+  async deletePlant(plantId: number): Promise<void> {
+    await fetchApi(`/plant/delete/${plantId}`, {
+      method: 'DELETE',
+    });
+  },
+
+  async deleteChore(choreId: number): Promise<void> {
+    await fetchApi(`/chore/delete/${choreId}`, {
+      method: 'DELETE',
+    });
+  },
+
+  async createPlant(data: { name: string; interval: number; owner_id: number }): Promise<void> {
+    await fetchApi('/plant/create', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async updatePlant(
+    plantId: number,
+    data: { name: string; interval: number; owner_id: number },
+  ): Promise<void> {
+    await fetchApi(`/plant/update/${plantId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async createChore(data: {
+    name: string;
+    interval: number;
+    rotation_enabled: number;
+    rotation_order: string | null;
+    worker_id: number | null;
+  }): Promise<void> {
+    await fetchApi('/chore/create', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async updateChore(
+    choreId: number,
+    data: {
+      name: string;
+      interval: number;
+      rotation_enabled: number;
+      rotation_order: string | null;
+      worker_id: number | null;
+    },
+  ): Promise<void> {
+    await fetchApi(`/chore/update/${choreId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  },
 };
