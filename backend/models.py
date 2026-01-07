@@ -41,5 +41,15 @@ sql_statements = [
         reason TEXT,
         FOREIGN KEY(original_owner_id) REFERENCES person(id),
         FOREIGN KEY(temporary_owner_id) REFERENCES person(id)
+    );""",
+    """CREATE TABLE IF NOT EXISTS push_subscription (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    person_id INTEGER NOT NULL,
+    endpoint TEXT NOT NULL,
+    p256dh TEXT NOT NULL,
+    auth TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    FOREIGN KEY(person_id) REFERENCES person(id),
+    UNIQUE(person_id, endpoint)
     );"""
 ]

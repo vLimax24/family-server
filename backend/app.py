@@ -1,6 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+import os
 import methods
 
 # Models
@@ -31,7 +32,13 @@ class ChoreUpdate(BaseModel):
     interval: int
     rotation_enabled: int
     rotation_order: str | None = None
-    worker_id: int | None = None 
+    worker_id: int | None = None
+
+class PushSubscription(BaseModel):
+    person_id: int
+    endpoint: str
+    p256dh: str
+    auth: str
 
 # Endpoints
 
@@ -175,3 +182,52 @@ async def update_chore(chore_id: int, data: ChoreUpdate):
     if not updated:
         raise HTTPException(404, "Chore not updated")
     return {"status": "Chore updated successfully"}
+
+@app.post("/push/subscribe")
+async def subscribe_push(data: PushSubscription):
+    try:
+        methods.addPushSubscription(
+            data.person_id,
+            data.endpoint,
+            data.p256dh,
+            data.auth
+        )
+        return {"status": "subscribed"}
+    except Exception as e:
+        raise HTTPException(400, str(e))
+
+@app.get("/push/vapid-public-key")
+async def get_vapid_public_key():
+    """Return the VAPID public key in browser-friendly base64url (uncompressed point) format.
+
+    The VAPID_PUBLIC_KEY env var may contain a base64 (DER/SPKI) representation (from OpenSSL).
+    We try to extract the raw uncompressed EC point and return it as base64url (no padding),
+    which is the format browsers expect for applicationServerKey.
+    """
+    import base64
+
+    v = os.getenv('VAPID_PUBLIC_KEY')
+    if not v:
+        return {"publicKey": None}
+
+    try:
+        der = base64.b64decode(v)
+        # Prefer using cryptography if available for robust parsing
+        try:
+            from cryptography.hazmat.primitives.serialization import load_der_public_key, Encoding, PublicFormat
+
+            pub = load_der_public_key(der)
+            raw = pub.public_bytes(encoding=Encoding.X962, format=PublicFormat.UncompressedPoint)
+        except Exception:
+            # Fallback: many SPKI DER exports have the uncompressed point at the end
+            if len(der) >= 65 and der[-65] == 0x04:
+                raw = der[-65:]
+            else:
+                # As a last resort, assume the provided value is already the correct raw key
+                raw = der
+
+        raw_b64url = base64.urlsafe_b64encode(raw).rstrip(b"=").decode("ascii")
+        return {"publicKey": raw_b64url}
+    except Exception:
+        # If anything fails, return the original env value (best-effort)
+        return {"publicKey": v}

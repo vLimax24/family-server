@@ -1,5 +1,7 @@
 from db import cursor, connection
 import json
+from pywebpush import webpush, WebPushException
+import os
 
 
 # ---------- Helper Validation Utilities ----------
@@ -607,3 +609,69 @@ def updateChore(chore_id, name, interval, rotation_enabled, rotation_order, work
     
     connection.commit()
     return cursor.rowcount > 0
+
+
+# ------------ NOTIFICATION SYSTEM ---------------
+
+def addPushSubscription(person_id, endpoint, p256dh, auth):
+    """Store a push subscription for a person"""
+    ensure_positive_int(person_id, "person_id")
+    ensure_person_exists(person_id)
+    ensure_not_empty(endpoint, "endpoint")
+    ensure_not_empty(p256dh, "p256dh")
+    ensure_not_empty(auth, "auth")
+    
+    cursor.execute("""
+        INSERT OR REPLACE INTO push_subscription (person_id, endpoint, p256dh, auth, created_at)
+        VALUES (?, ?, ?, ?, CAST(strftime('%s', 'now') AS INTEGER))
+    """, (person_id, endpoint, p256dh, auth))
+    
+    connection.commit()
+    return cursor.lastrowid
+
+
+def getPushSubscriptions(person_id):
+    """Get all push subscriptions for a person"""
+    ensure_positive_int(person_id, "person_id")
+    ensure_person_exists(person_id)
+    
+    cursor.execute("""
+        SELECT * FROM push_subscription WHERE person_id = ?
+    """, (person_id,))
+    
+    return [dict(row) for row in cursor.fetchall()]
+
+
+def sendPushNotification(person_id, title, body):
+    """Send a push notification to a person"""
+    subscriptions = getPushSubscriptions(person_id)
+    
+    vapid_private_key = os.getenv('VAPID_PRIVATE_KEY')
+    vapid_claims = {"sub": os.getenv('VAPID_CLAIMS', 'mailto:default@example.com')}
+    
+    payload = json.dumps({
+        "title": title,
+        "body": body,
+        "icon": "/icon.png",
+    })
+    
+    for sub in subscriptions:
+        try:
+            webpush(
+                subscription_info={
+                    "endpoint": sub['endpoint'],
+                    "keys": {
+                        "p256dh": sub['p256dh'],
+                        "auth": sub['auth']
+                    }
+                },
+                data=payload,
+                vapid_private_key=vapid_private_key,
+                vapid_claims=vapid_claims
+            )
+        except WebPushException as e:
+            print(f"Failed to send notification: {e}")
+            # If subscription is invalid, remove it
+            if e.response and e.response.status_code in [404, 410]:
+                cursor.execute("DELETE FROM push_subscription WHERE id = ?", (sub['id'],))
+                connection.commit()
