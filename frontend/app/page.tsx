@@ -11,6 +11,7 @@ import { FamilyMember, Plant, Chore } from '@/lib/types';
 import { apiService } from '@/services/apiService';
 import { Button } from '@/components/ui/button';
 import { ManageTasksDialog } from '@/components/ManageTasksDialog';
+import { pushService } from '@/services/pushService';
 
 export default function Page() {
   const [selectedMember, setSelectedMember] = useState<FamilyMember | null>(null);
@@ -23,6 +24,24 @@ export default function Page() {
   useEffect(() => {
     apiService.getFamilyMembers().then(setFamilyMembers).catch(console.error);
   }, []);
+
+  useEffect(() => {
+    if (selectedMember) {
+      // Check if notifications are already enabled
+      if (Notification.permission === 'default') {
+        // Prompt user after a short delay
+        setTimeout(async () => {
+          const granted = await pushService.requestPermission();
+          if (granted) {
+            await pushService.subscribeToPush(selectedMember.id);
+          }
+        }, 2000);
+      } else if (Notification.permission === 'granted') {
+        // Re-subscribe in case subscription expired
+        pushService.subscribeToPush(selectedMember.id);
+      }
+    }
+  }, [selectedMember]);
 
   const handleTasksUpdated = () => {
     // Reload dashboard data
