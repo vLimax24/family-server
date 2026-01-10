@@ -1,5 +1,6 @@
 import { CheckCircle2, Circle, Clock, Check, RotateCw } from 'lucide-react';
 import { Chore } from '@/lib/types';
+import { completionTracker } from '@/services/completionTracker';
 
 interface ChoreCardProps {
   chore: Chore;
@@ -7,10 +8,19 @@ interface ChoreCardProps {
 }
 
 export function ChoreCard({ chore, onComplete }: ChoreCardProps) {
-  // eslint-disable-next-line
+  //eslint-disable-next-line
   const time = Date.now();
-  const daysSinceDone = chore.last_done
-    ? Math.floor((time - chore.last_done * 1000) / (1000 * 60 * 60 * 24))
+
+  // Check if completed today via localStorage
+  const completedToday = completionTracker.isCompletedToday(chore.id, 'chore');
+  const localCompletionTime = completionTracker.getCompletionTime(chore.id, 'chore');
+
+  // Use local completion time if available, otherwise use server time
+  const effectiveLastDone =
+    completedToday && localCompletionTime ? localCompletionTime : chore.last_done;
+
+  const daysSinceDone = effectiveLastDone
+    ? Math.floor((time - effectiveLastDone * 1000) / (1000 * 60 * 60 * 24))
     : null;
 
   const getLastCompletedText = () => {
@@ -28,7 +38,15 @@ export function ChoreCard({ chore, onComplete }: ChoreCardProps) {
   };
 
   const urgency = getUrgencyLevel();
-  const isCompleted = daysSinceDone === 0;
+  const isCompleted = daysSinceDone === 0 || completedToday;
+
+  const handleComplete = () => {
+    // Mark as completed in localStorage immediately
+    completionTracker.markCompleted(chore.id, 'chore');
+
+    // Call the API to update on server
+    onComplete(chore.id);
+  };
 
   return (
     <div className="relative flex min-h-100 w-full flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white p-6 shadow-xl transition-all select-none hover:shadow-2xl sm:min-h-115 sm:rounded-3xl sm:p-8 lg:h-130 lg:rounded-[2rem] lg:p-10">
@@ -49,7 +67,7 @@ export function ChoreCard({ chore, onComplete }: ChoreCardProps) {
       </div>
 
       {/* Completed Overlay */}
-      {isCompleted && chore.last_done != null && (
+      {isCompleted && (
         <div className="absolute inset-0 z-20 flex animate-[fadeIn_0.5s_ease-out] items-center justify-center rounded-2xl bg-blue-500/60 backdrop-blur-sm sm:rounded-3xl lg:rounded-[2rem]">
           <div className="animate-[scaleIn_0.5s_ease-out] rounded-full bg-white p-6 shadow-2xl sm:p-7 lg:p-8">
             <Check
@@ -114,16 +132,16 @@ export function ChoreCard({ chore, onComplete }: ChoreCardProps) {
         <button
           onClick={(e) => {
             e.stopPropagation();
-            onComplete(chore.id);
+            handleComplete();
           }}
           className={`w-full rounded-xl px-6 py-4 text-xl font-semibold transition-all sm:px-7 sm:py-4 sm:text-xl lg:px-8 lg:py-5 lg:text-2xl ${
-            daysSinceDone === 0
+            isCompleted
               ? 'cursor-not-allowed border border-gray-200 bg-gray-100 text-gray-400'
               : 'bg-blue-600 text-white shadow-lg shadow-blue-600/30 hover:bg-blue-700 active:scale-[0.98]'
           }`}
-          disabled={daysSinceDone === 0}
+          disabled={isCompleted}
         >
-          {daysSinceDone === 0 ? 'Erledigt' : 'Als erledigt markieren'}
+          {isCompleted ? 'Heute erledigt' : 'Als erledigt markieren'}
         </button>
       </div>
     </div>

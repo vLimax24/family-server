@@ -1,5 +1,6 @@
 import { Droplet, Calendar, Check } from 'lucide-react';
 import { Plant } from '@/lib/types';
+import { completionTracker } from '@/services/completionTracker';
 
 interface PlantCardProps {
   plant: Plant;
@@ -7,21 +8,39 @@ interface PlantCardProps {
 }
 
 export function PlantCard({ plant, onWater }: PlantCardProps) {
-  // eslint-disable-next-line
+  //eslint-disable-next-line
   const time = Date.now();
+
+  // Check if completed today via localStorage
+  const completedToday = completionTracker.isCompletedToday(plant.id, 'plant');
+  const localCompletionTime = completionTracker.getCompletionTime(plant.id, 'plant');
+
+  // Use local completion time if available, otherwise use server time
+  const effectiveLastPour =
+    completedToday && localCompletionTime ? localCompletionTime : plant.last_pour;
+
   const daysSinceWatered =
-    plant.last_pour != null
-      ? Math.floor((time - plant.last_pour * 1000) / (1000 * 60 * 60 * 24))
-      : 0;
+    effectiveLastPour != null
+      ? Math.floor((time - effectiveLastPour * 1000) / (1000 * 60 * 60 * 24))
+      : null;
 
   const getStatusColor = () => {
+    if (daysSinceWatered === null) return 'emerald';
     if (daysSinceWatered > 5) return 'red';
     if (daysSinceWatered > 2) return 'amber';
     return 'emerald';
   };
 
   const statusColor = getStatusColor();
-  const isCompleted = daysSinceWatered === 0;
+  const isCompleted = daysSinceWatered === 0 || completedToday;
+
+  const handleWater = () => {
+    // Mark as completed in localStorage immediately
+    completionTracker.markCompleted(plant.id, 'plant');
+
+    // Call the API to update on server
+    onWater(plant.id);
+  };
 
   return (
     <div className="relative flex h-100 w-full flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white p-6 shadow-xl transition-all select-none hover:shadow-2xl sm:h-155 sm:rounded-3xl sm:p-8 lg:h-130 lg:rounded-[2rem] lg:p-10">
@@ -36,7 +55,7 @@ export function PlantCard({ plant, onWater }: PlantCardProps) {
                 : 'border border-emerald-200 bg-emerald-50 text-emerald-700'
           }`}
         >
-          Braucht Wasser
+          {isCompleted ? 'Gegossen' : 'Braucht Wasser'}
         </div>
         <div
           className={`h-2.5 w-2.5 rounded-full sm:h-3 sm:w-3 ${
@@ -50,7 +69,7 @@ export function PlantCard({ plant, onWater }: PlantCardProps) {
       </div>
 
       {/* Completed Overlay */}
-      {isCompleted && plant.last_pour != null && (
+      {isCompleted && (
         <div className="absolute inset-0 z-20 flex animate-[fadeIn_0.5s_ease-out] items-center justify-center rounded-2xl bg-emerald-500/60 backdrop-blur-sm sm:rounded-3xl lg:rounded-[2rem]">
           <div className="animate-[scaleIn_0.5s_ease-out] rounded-full bg-white p-6 shadow-2xl sm:p-7 lg:p-8">
             <Check
@@ -100,7 +119,7 @@ export function PlantCard({ plant, onWater }: PlantCardProps) {
             strokeWidth={2}
           />
           <span className="text-base sm:text-lg">
-            {plant.last_pour == null
+            {daysSinceWatered === null
               ? 'Noch nie gegossen'
               : daysSinceWatered === 0
                 ? 'Heute gegossen'
@@ -112,21 +131,24 @@ export function PlantCard({ plant, onWater }: PlantCardProps) {
         <button
           onClick={(e) => {
             e.stopPropagation();
-            onWater(plant.id);
+            handleWater();
           }}
           className={`flex w-full items-center justify-center gap-2.5 rounded-xl px-6 py-4 text-xl font-semibold transition-all sm:gap-3 sm:px-7 sm:py-4 sm:text-xl lg:px-8 lg:py-5 lg:text-2xl ${
-            statusColor === 'red'
-              ? 'bg-red-600 text-white shadow-lg shadow-red-600/30 hover:bg-red-700 active:scale-[0.98]'
-              : statusColor === 'amber'
-                ? 'bg-amber-600 text-white shadow-lg shadow-amber-600/30 hover:bg-amber-700 active:scale-[0.98]'
-                : 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30 hover:bg-emerald-700 active:scale-[0.98]'
+            isCompleted
+              ? 'cursor-not-allowed border border-gray-200 bg-gray-100 text-gray-400'
+              : statusColor === 'red'
+                ? 'bg-red-600 text-white shadow-lg shadow-red-600/30 hover:bg-red-700 active:scale-[0.98]'
+                : statusColor === 'amber'
+                  ? 'bg-amber-600 text-white shadow-lg shadow-amber-600/30 hover:bg-amber-700 active:scale-[0.98]'
+                  : 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30 hover:bg-emerald-700 active:scale-[0.98]'
           }`}
+          disabled={isCompleted}
         >
           <Droplet
             className="h-5 w-5 sm:h-6 sm:w-6"
             strokeWidth={2.5}
           />
-          Pflanze gießen
+          {isCompleted ? 'Heute gegossen' : 'Pflanze gießen'}
         </button>
       </div>
     </div>

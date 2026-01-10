@@ -12,6 +12,7 @@ import { apiService } from '@/services/apiService';
 import { Button } from '@/components/ui/button';
 import { ManageTasksDialog } from '@/components/ManageTasksDialog';
 import { pushService } from '@/services/pushService';
+import { completionTracker } from '@/services/completionTracker';
 
 export default function Page() {
   const [selectedMember, setSelectedMember] = useState<FamilyMember | null>(null);
@@ -19,12 +20,44 @@ export default function Page() {
   const [chores, setChores] = useState<Chore[]>([]);
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
   const [manageDialogOpen, setManageDialogOpen] = useState<boolean>(false);
+  const [refreshKey, setRefreshKey] = useState(0); // Force re-render after midnight
 
-  // Lade Familie beim Mount
+  // Load family members on mount
   useEffect(() => {
     apiService.getFamilyMembers().then(setFamilyMembers).catch(console.error);
   }, []);
 
+  // Check for midnight reset every minute
+  useEffect(() => {
+    const checkMidnight = () => {
+      if (completionTracker.shouldReset()) {
+        console.log('Midnight detected - forcing reset and refresh');
+        completionTracker.forceReset();
+        setRefreshKey((prev) => prev + 1); // Force re-render
+
+        // Reload dashboard data
+        if (selectedMember) {
+          apiService
+            .getDashboardData(selectedMember.id)
+            .then(({ plants, chores }) => {
+              setPlants(plants);
+              setChores(chores);
+            })
+            .catch(console.error);
+        }
+      }
+    };
+
+    // Check immediately
+    checkMidnight();
+
+    // Then check every minute
+    const interval = setInterval(checkMidnight, 60000);
+
+    return () => clearInterval(interval);
+  }, [selectedMember]);
+
+  // Handle push notifications
   useEffect(() => {
     if (selectedMember) {
       const notificationsSupported =
@@ -34,9 +67,8 @@ export default function Page() {
         console.log('Push notifications not supported on this device/browser');
         return;
       }
-      // Check if notifications are already enabled
+
       if (Notification.permission === 'default') {
-        // Prompt user after a short delay
         setTimeout(async () => {
           const granted = await pushService.requestPermission();
           if (granted) {
@@ -44,14 +76,12 @@ export default function Page() {
           }
         }, 2000);
       } else if (Notification.permission === 'granted') {
-        // Re-subscribe in case subscription expired
         pushService.subscribeToPush(selectedMember.id);
       }
     }
   }, [selectedMember]);
 
   const handleTasksUpdated = () => {
-    // Reload dashboard data
     if (selectedMember) {
       apiService
         .getDashboardData(selectedMember.id)
@@ -63,7 +93,7 @@ export default function Page() {
     }
   };
 
-  // Lade Dashboard-Daten wenn Member ausgewählt
+  // Load dashboard data when member is selected
   useEffect(() => {
     if (!selectedMember) return;
 
@@ -71,18 +101,17 @@ export default function Page() {
       .getDashboardData(selectedMember.id)
       .then(({ plants, chores }) => {
         setPlants(plants);
-        console.log(chores);
         setChores(chores);
       })
       .catch(console.error);
-  }, [selectedMember]);
+  }, [selectedMember, refreshKey]);
 
-  // Handler für Pflanze gießen
+  // Handler for watering plant
   const handleWaterPlant = async (plantId: number) => {
     try {
       await apiService.waterPlant(plantId);
-
-      // Optimistisches Update
+      // Note: The PlantCard now handles localStorage updates internally
+      // We keep the optimistic update here for the backend state
       setPlants((prev) =>
         prev.map((plant) =>
           plant.id === plantId ? { ...plant, last_pour: Date.now() / 1000 } : plant,
@@ -93,12 +122,11 @@ export default function Page() {
     }
   };
 
-  // Handler für Aufgabe erledigen
+  // Handler for completing chore
   const handleCompleteChore = async (choreId: number) => {
     try {
       await apiService.completeChore(choreId);
-
-      // Optimistisches Update
+      // Note: The ChoreCard now handles localStorage updates internally
       setChores((prev) =>
         prev.map((chore) =>
           chore.id === choreId ? { ...chore, last_done: Date.now() / 1000 } : chore,
@@ -110,7 +138,6 @@ export default function Page() {
   };
 
   const handleMemberAvailabilityChange = (memberId: number, newAvailability: number) => {
-    // Update the selected member if they're the one who changed
     if (selectedMember && selectedMember.id === memberId) {
       setSelectedMember({
         ...selectedMember,
@@ -118,7 +145,6 @@ export default function Page() {
       });
     }
 
-    // Also update in the familyMembers list (optional, for consistency)
     setFamilyMembers((prev) =>
       prev.map((member) =>
         member.id === memberId ? { ...member, is_available: newAvailability } : member,
@@ -126,18 +152,18 @@ export default function Page() {
     );
   };
 
-  // Erstelle Carousel-Items
+  // Create carousel items
   const allTasks = [
     ...plants.map((plant) => (
       <PlantCard
-        key={`plant-${plant.id}`}
+        key={`plant-${plant.id}-${refreshKey}`}
         plant={plant}
         onWater={handleWaterPlant}
       />
     )),
     ...chores.map((chore) => (
       <ChoreCard
-        key={`chore-${chore.id}`}
+        key={`chore-${chore.id}-${refreshKey}`}
         chore={chore}
         onComplete={handleCompleteChore}
       />

@@ -171,6 +171,13 @@ def findNextAvailableIndexInRotation(rotation_list, current_index):
     return (current_index + 1) % rotation_len
 
 
+def getPersonAtRotationIndex(rotation_list, index):
+    """Get the person_id at a specific rotation index"""
+    if not rotation_list or index is None:
+        return None
+    return rotation_list[index % len(rotation_list)]
+
+
 # ---------- TASK REDISTRIBUTION ----------
 
 def redistributeTasks(unavailable_person_id):
@@ -354,11 +361,17 @@ def getDueChoresOfPerson(person_id):
     ensure_positive_int(person_id, "person_id")
     ensure_person_exists(person_id)
 
-    # Get ALL due chores
+    # Get chores that are either:
+    # 1. Due (never done OR interval has passed)
+    # 2. Completed today (done within last 24 hours)
     cursor.execute("""
                    SELECT *
                    FROM chore
-                   WHERE (last_done IS NULL OR date(last_done, 'unixepoch', '+' || interval || ' days') <= date('now'))
+                   WHERE (
+                       last_done IS NULL 
+                       OR date(last_done, 'unixepoch', '+' || interval || ' days') <= date('now')
+                       OR (CAST(strftime('%s', 'now') AS INTEGER) - last_done) < 86400
+                   )
                    """)
     chores = cursor.fetchall()
 
@@ -379,13 +392,34 @@ def getDueChoresOfPerson(person_id):
             if not rotation_list:
                 continue
             
-            # Find the next available person in rotation
-            current_index = chore_dict['last_assigned_index'] if chore_dict['last_assigned_index'] is not None else 0
-            next_person_id = getNextAvailableInRotation(rotation_list, current_index)
+            # Check if this person is in the rotation at all
+            if person_id not in rotation_list:
+                continue
             
-            # Check if it's this person's turn
-            if next_person_id == person_id:
+            current_index = chore_dict['last_assigned_index'] if chore_dict['last_assigned_index'] is not None else 0
+            
+            # Get who's currently assigned based on the index
+            current_assigned_person = getPersonAtRotationIndex(rotation_list, current_index)
+            
+            # Check if task was completed today (within 24 hours)
+            completed_today = (
+                chore_dict['last_done'] is not None and 
+                (int(cursor.execute("SELECT CAST(strftime('%s', 'now') AS INTEGER)").fetchone()[0]) - chore_dict['last_done']) < 86400
+            )
+            
+            # Show to current person if:
+            # 1. It's their turn right now, OR
+            # 2. They completed it today (ghost/completed state)
+            if current_assigned_person == person_id or (completed_today and current_assigned_person == person_id):
                 finalChores.append(chore_dict)
+            # ALSO show as "ghost" if they completed it but rotation moved on
+            elif completed_today:
+                # Check if this person was the one who completed it
+                # by checking if the previous index was theirs
+                prev_index = (current_index - 1) % len(rotation_list)
+                prev_assigned = getPersonAtRotationIndex(rotation_list, prev_index)
+                if prev_assigned == person_id:
+                    finalChores.append(chore_dict)
         
         # PRIORITY 3: Regular non-rotating chores
         else:
@@ -475,12 +509,18 @@ def getDuePlantsOfPerson(person_id):
     ensure_positive_int(person_id, "person_id")
     ensure_person_exists(person_id)
 
-    # Get plants where person is either the owner OR temporarily assigned
+    # Get plants that are either:
+    # 1. Due (never watered OR interval has passed)
+    # 2. Watered today (done within last 24 hours)
     cursor.execute("""
                    SELECT *
                    FROM plant
                    WHERE (owner_id = ? OR temporary_owner_id = ?)
-                     AND (last_pour IS NULL OR date(last_pour, 'unixepoch', '+' || interval || ' days') <= date('now'))
+                     AND (
+                         last_pour IS NULL 
+                         OR date(last_pour, 'unixepoch', '+' || interval || ' days') <= date('now')
+                         OR (CAST(strftime('%s', 'now') AS INTEGER) - last_pour) < 86400
+                     )
                    """, (person_id, person_id))
     return [dict(row) for row in cursor.fetchall()]
 
@@ -610,8 +650,6 @@ def updateChore(chore_id, name, interval, rotation_enabled, rotation_order, work
     connection.commit()
     return cursor.rowcount > 0
 
-
-# ------------ NOTIFICATION SYSTEM ---------------
 
 # ------------ NOTIFICATION SYSTEM ---------------
 
