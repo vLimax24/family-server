@@ -613,6 +613,8 @@ def updateChore(chore_id, name, interval, rotation_enabled, rotation_order, work
 
 # ------------ NOTIFICATION SYSTEM ---------------
 
+# ------------ NOTIFICATION SYSTEM ---------------
+
 def addPushSubscription(person_id, endpoint, p256dh, auth):
     """Store a push subscription for a person"""
     ensure_positive_int(person_id, "person_id")
@@ -644,10 +646,15 @@ def getPushSubscriptions(person_id):
 
 def sendPushNotification(person_id, title, body):
     """Send a push notification to a person"""
+    from pywebpush import webpush, WebPushException
+    
     subscriptions = getPushSubscriptions(person_id)
     
-    vapid_private_key = os.getenv('VAPID_PRIVATE_KEY')
-    vapid_claims = {"sub": os.getenv('VAPID_CLAIMS', 'mailto:default@example.com')}
+    if not subscriptions:
+        raise ValueError(f"No push subscriptions found for person {person_id}")
+    
+    vapid_key_path = "/app/private_key.pem"
+    vapid_claims = {"sub": "mailto:linas.gierga@gmail.com"}
     
     payload = json.dumps({
         "title": title,
@@ -666,12 +673,10 @@ def sendPushNotification(person_id, title, body):
                     }
                 },
                 data=payload,
-                vapid_private_key=vapid_private_key,
+                vapid_private_key=vapid_key_path,
                 vapid_claims=vapid_claims
             )
-        except WebPushException as e:
-            print(f"Failed to send notification: {e}")
-            # If subscription is invalid, remove it
-            if e.response and e.response.status_code in [404, 410]:
+        except WebPushException as ex:
+            if ex.response and ex.response.status_code in [404, 410]:
                 cursor.execute("DELETE FROM push_subscription WHERE id = ?", (sub['id'],))
                 connection.commit()

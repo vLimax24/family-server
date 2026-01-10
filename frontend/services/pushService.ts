@@ -11,17 +11,20 @@ export const pushService = {
 
   async subscribeToPush(personId: number): Promise<boolean> {
     try {
-      // Register service worker
       const registration = await navigator.serviceWorker.register('/sw.js');
       await navigator.serviceWorker.ready;
 
-      // Get VAPID public key from backend
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/push/vapid-public-key`);
-      const { publicKey } = await response.json();
+      if (!response.ok) {
+        throw new Error(`Failed to get VAPID key: ${response.statusText}`);
+      }
 
-      // Subscribe to push
+      const { publicKey } = await response.json();
+      if (!publicKey) {
+        throw new Error('No public key received from server');
+      }
+
       const vapidKeyUint8 = urlBase64ToUint8Array(publicKey);
-      // Make a copy of the VAPID key so the underlying buffer is a plain ArrayBuffer (not SharedArrayBuffer)
       const applicationServerKey = new Uint8Array(vapidKeyUint8).buffer;
 
       const subscription = await registration.pushManager.subscribe({
@@ -29,9 +32,8 @@ export const pushService = {
         applicationServerKey,
       });
 
-      // Send subscription to backend
       const subscriptionJson = subscription.toJSON();
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/push/subscribe`, {
+      const subscribeResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/push/subscribe`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -41,6 +43,10 @@ export const pushService = {
           auth: subscriptionJson.keys?.auth,
         }),
       });
+
+      if (!subscribeResponse.ok) {
+        throw new Error(`Failed to subscribe: ${subscribeResponse.statusText}`);
+      }
 
       return true;
     } catch (error) {
@@ -66,16 +72,15 @@ export const pushService = {
   },
 };
 
-// Helper function to convert VAPID key
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
-  const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
-
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
   const rawData = window.atob(base64);
   const outputArray = new Uint8Array(rawData.length);
 
   for (let i = 0; i < rawData.length; ++i) {
     outputArray[i] = rawData.charCodeAt(i);
   }
+
   return outputArray;
 }

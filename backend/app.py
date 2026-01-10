@@ -1,8 +1,23 @@
+import time
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import os
 import methods
+from contextlib import asynccontextmanager
+from scheduler import start_scheduler
+
+scheduler = None
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    global scheduler
+    scheduler = start_scheduler()
+    yield
+    # Shutdown
+    if scheduler:
+        scheduler.shutdown()
 
 # Models
 class PlantCreate(BaseModel):
@@ -195,39 +210,55 @@ async def subscribe_push(data: PushSubscription):
         return {"status": "subscribed"}
     except Exception as e:
         raise HTTPException(400, str(e))
-
+    
 @app.get("/push/vapid-public-key")
 async def get_vapid_public_key():
-    """Return the VAPID public key in browser-friendly base64url (uncompressed point) format.
-
-    The VAPID_PUBLIC_KEY env var may contain a base64 (DER/SPKI) representation (from OpenSSL).
-    We try to extract the raw uncompressed EC point and return it as base64url (no padding),
-    which is the format browsers expect for applicationServerKey.
-    """
+    """Return the VAPID public key for browser subscription"""
+    from py_vapid import Vapid01
     import base64
+    from cryptography.hazmat.primitives import serialization
+    
+    vapid_private_key_path = os.path.join(os.path.dirname(__file__), 'private_key.pem')
+    
+    vapid = Vapid01()
+    
+    if not os.path.exists(vapid_private_key_path):
+        vapid.generate_keys()
+        vapid.save_key(vapid_private_key_path)
+    else:
+        vapid = Vapid01.from_file(vapid_private_key_path)
+    
+    if vapid.public_key is None:
+        raise HTTPException(500, "Failed to load VAPID public key")
+    
+    public_bytes = vapid.public_key.public_bytes(
+        encoding=serialization.Encoding.X962,
+        format=serialization.PublicFormat.UncompressedPoint
+    )
+    public_b64 = base64.urlsafe_b64encode(public_bytes).rstrip(b'=').decode('utf-8')
+    
+    return {"publicKey": public_b64}
 
-    v = os.getenv('VAPID_PUBLIC_KEY')
-    if not v:
-        return {"publicKey": None}
 
+@app.post("/push/test/{person_id}")
+async def send_test_push(person_id: int):
+    """Send a test push notification to a specific person"""
     try:
-        der = base64.b64decode(v)
-        # Prefer using cryptography if available for robust parsing
-        try:
-            from cryptography.hazmat.primitives.serialization import load_der_public_key, Encoding, PublicFormat
-
-            pub = load_der_public_key(der)
-            raw = pub.public_bytes(encoding=Encoding.X962, format=PublicFormat.UncompressedPoint)
-        except Exception:
-            # Fallback: many SPKI DER exports have the uncompressed point at the end
-            if len(der) >= 65 and der[-65] == 0x04:
-                raw = der[-65:]
-            else:
-                # As a last resort, assume the provided value is already the correct raw key
-                raw = der
-
-        raw_b64url = base64.urlsafe_b64encode(raw).rstrip(b"=").decode("ascii")
-        return {"publicKey": raw_b64url}
-    except Exception:
-        # If anything fails, return the original env value (best-effort)
-        return {"publicKey": v}
+        methods.sendPushNotification(
+            person_id=person_id,
+            title="🧪 Test Notification",
+            body=f"Test notification sent at {time.strftime('%H:%M:%S')}. If you see this, it's working! 🎉"
+        )
+        return {"status": "notification sent", "person_id": person_id}
+    except Exception as e:
+        raise HTTPException(400, f"Failed to send notification: {str(e)}")
+    
+@app.post("/push/send-daily-reminders")
+async def trigger_daily_reminders():
+    """Manually trigger daily reminders (for testing)"""
+    from scheduler import send_daily_reminders
+    try:
+        send_daily_reminders()
+        return {"status": "Reminders sent successfully"}
+    except Exception as e:
+        raise HTTPException(500, f"Failed to send reminders: {str(e)}")
