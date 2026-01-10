@@ -41,3 +41,11 @@ Thumbs.db
 
 venv/
 .venv/
+
+# SSL Certificates (mkcert)
+*.pem
+*.key
+localhost*.pem
+localhost*-key.pem
+rootCA.pem
+rootCA-key.pem
