@@ -1,7 +1,23 @@
+import time
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+import os
 import methods
+from contextlib import asynccontextmanager
+from scheduler import start_scheduler
+
+scheduler = None
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    global scheduler
+    scheduler = start_scheduler()
+    yield
+    # Shutdown
+    if scheduler:
+        scheduler.shutdown()
 
 # Models
 class PlantCreate(BaseModel):
@@ -31,7 +47,13 @@ class ChoreUpdate(BaseModel):
     interval: int
     rotation_enabled: int
     rotation_order: str | None = None
-    worker_id: int | None = None 
+    worker_id: int | None = None
+
+class PushSubscription(BaseModel):
+    person_id: int
+    endpoint: str
+    p256dh: str
+    auth: str
 
 # Endpoints
 
@@ -175,3 +197,68 @@ async def update_chore(chore_id: int, data: ChoreUpdate):
     if not updated:
         raise HTTPException(404, "Chore not updated")
     return {"status": "Chore updated successfully"}
+
+@app.post("/push/subscribe")
+async def subscribe_push(data: PushSubscription):
+    try:
+        methods.addPushSubscription(
+            data.person_id,
+            data.endpoint,
+            data.p256dh,
+            data.auth
+        )
+        return {"status": "subscribed"}
+    except Exception as e:
+        raise HTTPException(400, str(e))
+    
+@app.get("/push/vapid-public-key")
+async def get_vapid_public_key():
+    """Return the VAPID public key for browser subscription"""
+    from py_vapid import Vapid01
+    import base64
+    from cryptography.hazmat.primitives import serialization
+    
+    vapid_private_key_path = os.path.join(os.path.dirname(__file__), 'private_key.pem')
+    
+    vapid = Vapid01()
+    
+    if not os.path.exists(vapid_private_key_path):
+        vapid.generate_keys()
+        vapid.save_key(vapid_private_key_path)
+    else:
+        vapid = Vapid01.from_file(vapid_private_key_path)
+    
+    if vapid.public_key is None:
+        raise HTTPException(500, "Failed to load VAPID public key")
+    
+    public_bytes = vapid.public_key.public_bytes(
+        encoding=serialization.Encoding.X962,
+        format=serialization.PublicFormat.UncompressedPoint
+    )
+    public_b64 = base64.urlsafe_b64encode(public_bytes).rstrip(b'=').decode('utf-8')
+    
+    return {"publicKey": public_b64}
+
+
+@app.post("/push/test/{person_id}")
+async def send_test_push(person_id: int):
+    """Send a test push notification to a specific person"""
+    try:
+        methods.sendPushNotification(
+            person_id=person_id,
+            title="🧪 Test Notification",
+            body=f"Test notification sent at {time.strftime('%H:%M:%S')}. If you see this, it's working! 🎉"
+        )
+        return {"status": "notification sent", "person_id": person_id}
+    except Exception as e:
+        raise HTTPException(400, f"Failed to send notification: {str(e)}")
+    
+@app.post("/push/send-daily-reminders")
+async def trigger_daily_reminders():
+    """Manually trigger daily reminders (for testing)"""
+    from scheduler import send_daily_reminders
+    try:
+        send_daily_reminders()
+        return {"status": "Reminders sent successfully"}
+    except Exception as e:
+        raise HTTPException(500, f"Failed to send reminders: {str(e)}")
