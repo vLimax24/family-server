@@ -1,7 +1,18 @@
 export const pushService = {
   async requestPermission(): Promise<boolean> {
-    if (!('Notification' in window)) {
+    // Check if Notification API exists
+    if (typeof window === 'undefined' || !('Notification' in window)) {
       console.error('This browser does not support notifications');
+      return false;
+    }
+
+    // Check if already granted
+    if (Notification.permission === 'granted') {
+      return true;
+    }
+
+    // Check if denied
+    if (Notification.permission === 'denied') {
       return false;
     }
 

@@ -27,6 +27,13 @@ export default function Page() {
 
   useEffect(() => {
     if (selectedMember) {
+      const notificationsSupported =
+        'Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window;
+
+      if (!notificationsSupported) {
+        console.log('Push notifications not supported on this device/browser');
+        return;
+      }
       // Check if notifications are already enabled
       if (Notification.permission === 'default') {
         // Prompt user after a short delay
