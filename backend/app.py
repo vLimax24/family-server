@@ -92,12 +92,18 @@ async def setPersonAvailability(data: SetAvailability):
 async def read_dashboard(person_id: int):
     return methods.getDashboardForPerson(person_id)
 
+@app.get("/history/today/{person_id}")
+async def get_today_completion_history(person_id: int):
+    """Get today's completed tasks for a person"""
+    return methods.getTodayCompletionHistory(person_id)
+
 @app.patch("/plant/{plant_id}/water")
 async def markPlantWatered(plant_id: int):
     updated = methods.markPlantWatered(plant_id)
     if not updated:
         raise HTTPException(404, "Plant was not watered.")
     return {"success": "watered"}
+
 @app.patch("/chore/{chore_id}/done")
 async def markChoreDone(chore_id: int):
     updated = methods.markChoreDone(chore_id)
@@ -125,26 +131,13 @@ async def deletePlant(plant_id: int):
     if not updated:
         raise HTTPException(404, "Plant not deleted.")
     return {"status": "Plant deleted successfully."}
+
 @app.delete("/chore/delete/{chore_id}")
 async def deleteChore(chore_id: int):
     updated = methods.removeChore(chore_id)
     if not updated:
         raise HTTPException(404, "Chore not deleted.")
     return {"status": "Chore deleted successfully."}
-
-class PlantUpdate(BaseModel):
-    name: str
-    interval: int
-    owner_id: int
-
-class ChoreUpdate(BaseModel):
-    name: str
-    interval: int
-    rotation_enabled: int
-    rotation_order: str | None = None
-    worker_id: int | None = None
-
-# Add these endpoints:
 
 @app.get("/plants/person/{person_id}")
 async def get_plants_of_person(person_id: int):
@@ -169,7 +162,6 @@ async def create_plant(data: PlantCreate):
 
 @app.patch("/plant/update/{plant_id}")
 async def update_plant(plant_id: int, data: PlantUpdate):
-    # You'll need to create this method in methods.py
     updated = methods.updatePlant(plant_id, data.name, data.interval, data.owner_id)
     if not updated:
         raise HTTPException(404, "Plant not updated")
