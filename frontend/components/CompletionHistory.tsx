@@ -119,7 +119,7 @@ export default function CompletionHistory({ personId, refreshTrigger }: Completi
           </div>
         ) : (
           <ScrollArea className="mt-6 h-[calc(100vh-12rem)]">
-            <div className="space-y-3 pr-4">
+            <div className="space-y-3 px-4">
               {completions.map((completion, index) => (
                 <div
                   key={`${completion.task_type}-${completion.id}-${index}`}
