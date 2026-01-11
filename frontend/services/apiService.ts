@@ -2,11 +2,18 @@ import { FamilyMember, Plant, Chore } from '@/lib/types';
 import { SetAvailability } from '@/lib/types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
-console.log(API_BASE_URL);
 
 interface DashboardResponse {
   duePlants: Plant[];
   dueChores: Chore[];
+}
+
+interface CompletionRecord {
+  id: number;
+  name: string;
+  completed_at: number;
+  task_type: 'plant' | 'chore';
+  rotation_enabled: number;
 }
 
 async function fetchApi<T>(endpoint: string, options?: RequestInit): Promise<T> {
@@ -43,6 +50,12 @@ export const apiService = {
       plants: data.duePlants,
       chores: data.dueChores,
     };
+  },
+
+  async getTodayCompletionHistory(personId: number): Promise<CompletionRecord[]> {
+    return await fetchApi<CompletionRecord[]>(`/history/today/${personId}`, {
+      cache: 'no-store',
+    });
   },
 
   async waterPlant(plantId: number): Promise<void> {
