@@ -7,12 +7,12 @@ import { UserSelector } from '@/components/UserSelector';
 import { PlantCard } from '@/components/PlantCard';
 import { ChoreCard } from '@/components/ChoreCard';
 import { TaskCarousel } from '@/components/TaskCarousel';
+import CompletionHistory from '@/components/CompletionHistory';
 import { FamilyMember, Plant, Chore } from '@/lib/types';
 import { apiService } from '@/services/apiService';
 import { Button } from '@/components/ui/button';
 import { ManageTasksDialog } from '@/components/ManageTasksDialog';
 import { pushService } from '@/services/pushService';
-import { completionTracker } from '@/services/completionTracker';
 
 export default function Page() {
   const [selectedMember, setSelectedMember] = useState<FamilyMember | null>(null);
@@ -20,42 +20,12 @@ export default function Page() {
   const [chores, setChores] = useState<Chore[]>([]);
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
   const [manageDialogOpen, setManageDialogOpen] = useState<boolean>(false);
-  const [refreshKey, setRefreshKey] = useState(0); // Force re-render after midnight
+  const [historyRefresh, setHistoryRefresh] = useState(0); // Trigger history refresh
 
   // Load family members on mount
   useEffect(() => {
     apiService.getFamilyMembers().then(setFamilyMembers).catch(console.error);
   }, []);
-
-  // Check for midnight reset every minute
-  useEffect(() => {
-    const checkMidnight = () => {
-      if (completionTracker.shouldReset()) {
-        console.log('Midnight detected - forcing reset and refresh');
-        completionTracker.forceReset();
-        setRefreshKey((prev) => prev + 1); // Force re-render
-
-        // Reload dashboard data
-        if (selectedMember) {
-          apiService
-            .getDashboardData(selectedMember.id)
-            .then(({ plants, chores }) => {
-              setPlants(plants);
-              setChores(chores);
-            })
-            .catch(console.error);
-        }
-      }
-    };
-
-    // Check immediately
-    checkMidnight();
-
-    // Then check every minute
-    const interval = setInterval(checkMidnight, 60000);
-
-    return () => clearInterval(interval);
-  }, [selectedMember]);
 
   // Handle push notifications
   useEffect(() => {
@@ -104,7 +74,7 @@ export default function Page() {
         setChores(chores);
       })
       .catch(console.error);
-  }, [selectedMember, refreshKey]);
+  }, [selectedMember]);
 
   // Handler for watering plant
   const handleWaterPlant = async (plantId: number) => {
@@ -117,6 +87,8 @@ export default function Page() {
           plant.id === plantId ? { ...plant, last_pour: Date.now() / 1000 } : plant,
         ),
       );
+      // Trigger history refresh
+      setHistoryRefresh((prev) => prev + 1);
     } catch (error) {
       console.error('Failed to water plant:', error);
     }
@@ -132,6 +104,8 @@ export default function Page() {
           chore.id === choreId ? { ...chore, last_done: Date.now() / 1000 } : chore,
         ),
       );
+      // Trigger history refresh
+      setHistoryRefresh((prev) => prev + 1);
     } catch (error) {
       console.error('Failed to complete chore:', error);
     }
@@ -156,14 +130,14 @@ export default function Page() {
   const allTasks = [
     ...plants.map((plant) => (
       <PlantCard
-        key={`plant-${plant.id}-${refreshKey}`}
+        key={`plant-${plant.id}`}
         plant={plant}
         onWater={handleWaterPlant}
       />
     )),
     ...chores.map((chore) => (
       <ChoreCard
-        key={`chore-${chore.id}-${refreshKey}`}
+        key={`chore-${chore.id}`}
         chore={chore}
         onComplete={handleCompleteChore}
       />
@@ -231,8 +205,13 @@ export default function Page() {
                     color="blue"
                   />
                   <div className="h-8 w-px bg-gray-200 sm:h-10" />
+                  <CompletionHistory
+                    personId={selectedMember.id}
+                    refreshTrigger={historyRefresh}
+                  />
                   <Button
-                    className="flex items-center gap-3 rounded-lg border-slate-200 bg-transparent p-2 text-slate-600 transition-all hover:cursor-pointer hover:bg-slate-100 active:scale-95"
+                    variant="outline"
+                    className="flex items-center gap-2 rounded-lg border-slate-200 bg-white/80 p-2 text-slate-600 transition-all hover:border-slate-300 hover:bg-white hover:text-slate-900 active:scale-95"
                     onClick={() => setManageDialogOpen(true)}
                   >
                     <Settings

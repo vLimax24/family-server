@@ -1,6 +1,5 @@
 import { Droplet, Calendar, Check } from 'lucide-react';
 import { Plant } from '@/lib/types';
-import { completionTracker } from '@/services/completionTracker';
 
 interface PlantCardProps {
   plant: Plant;
@@ -11,17 +10,9 @@ export function PlantCard({ plant, onWater }: PlantCardProps) {
   //eslint-disable-next-line
   const time = Date.now();
 
-  // Check if completed today via localStorage
-  const completedToday = completionTracker.isCompletedToday(plant.id, 'plant');
-  const localCompletionTime = completionTracker.getCompletionTime(plant.id, 'plant');
-
-  // Use local completion time if available, otherwise use server time
-  const effectiveLastPour =
-    completedToday && localCompletionTime ? localCompletionTime : plant.last_pour;
-
   const daysSinceWatered =
-    effectiveLastPour != null
-      ? Math.floor((time - effectiveLastPour * 1000) / (1000 * 60 * 60 * 24))
+    plant.last_pour != null
+      ? Math.floor((time - plant.last_pour * 1000) / (1000 * 60 * 60 * 24))
       : null;
 
   const getStatusColor = () => {
@@ -32,15 +23,7 @@ export function PlantCard({ plant, onWater }: PlantCardProps) {
   };
 
   const statusColor = getStatusColor();
-  const isCompleted = daysSinceWatered === 0 || completedToday;
-
-  const handleWater = () => {
-    // Mark as completed in localStorage immediately
-    completionTracker.markCompleted(plant.id, 'plant');
-
-    // Call the API to update on server
-    onWater(plant.id);
-  };
+  const isCompleted = daysSinceWatered === 0;
 
   return (
     <div className="relative flex h-100 w-full flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white p-6 shadow-xl transition-all select-none hover:shadow-2xl sm:h-155 sm:rounded-3xl sm:p-8 lg:h-130 lg:rounded-[2rem] lg:p-10">
@@ -69,7 +52,7 @@ export function PlantCard({ plant, onWater }: PlantCardProps) {
       </div>
 
       {/* Completed Overlay */}
-      {isCompleted && (
+      {isCompleted && plant.last_pour != null && (
         <div className="absolute inset-0 z-20 flex animate-[fadeIn_0.5s_ease-out] items-center justify-center rounded-2xl bg-emerald-500/60 backdrop-blur-sm sm:rounded-3xl lg:rounded-[2rem]">
           <div className="animate-[scaleIn_0.5s_ease-out] rounded-full bg-white p-6 shadow-2xl sm:p-7 lg:p-8">
             <Check
@@ -131,7 +114,7 @@ export function PlantCard({ plant, onWater }: PlantCardProps) {
         <button
           onClick={(e) => {
             e.stopPropagation();
-            handleWater();
+            onWater(plant.id);
           }}
           className={`flex w-full items-center justify-center gap-2.5 rounded-xl px-6 py-4 text-xl font-semibold transition-all sm:gap-3 sm:px-7 sm:py-4 sm:text-xl lg:px-8 lg:py-5 lg:text-2xl ${
             isCompleted
