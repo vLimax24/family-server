@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { CheckCircle2, Droplet, Clock, RotateCw, History } from 'lucide-react';
+import { CheckCircle2, Droplet, Clock, RotateCw, History, Zap } from 'lucide-react';
 import { apiService } from '@/services/apiService';
 import {
   Sheet,
@@ -17,7 +17,7 @@ interface CompletionRecord {
   id: number;
   name: string;
   completed_at: number;
-  task_type: 'plant' | 'chore';
+  task_type: 'plant' | 'chore' | 'one_time';
   rotation_enabled: number;
 }
 
@@ -119,7 +119,7 @@ export default function CompletionHistory({ personId, refreshTrigger }: Completi
           </div>
         ) : (
           <ScrollArea className="mt-6 h-[calc(100vh-12rem)]">
-            <div className="space-y-3 px-4">
+            <div className="space-y-3 pr-4">
               {completions.map((completion, index) => (
                 <div
                   key={`${completion.task_type}-${completion.id}-${index}`}
@@ -134,6 +134,11 @@ export default function CompletionHistory({ personId, refreshTrigger }: Completi
                       {completion.task_type === 'plant' ? (
                         <Droplet
                           className="h-5 w-5 text-emerald-600"
+                          strokeWidth={2}
+                        />
+                      ) : completion.task_type === 'one_time' ? (
+                        <Zap
+                          className="h-5 w-5 text-purple-600"
                           strokeWidth={2}
                         />
                       ) : (
@@ -162,7 +167,11 @@ export default function CompletionHistory({ personId, refreshTrigger }: Completi
                           variant="secondary"
                           className="text-xs"
                         >
-                          {completion.task_type === 'plant' ? 'Pflanze' : 'Aufgabe'}
+                          {completion.task_type === 'plant'
+                            ? 'Pflanze'
+                            : completion.task_type === 'one_time'
+                              ? 'Einmalig'
+                              : 'Aufgabe'}
                         </Badge>
 
                         {completion.rotation_enabled === 1 && (

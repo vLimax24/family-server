@@ -1,13 +1,15 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Sprout, Settings, ListTodo, Check } from 'lucide-react';
+import { ArrowLeft, Sprout, Settings, ListTodo, Check, Plus } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { UserSelector } from '@/components/UserSelector';
 import { PlantCard } from '@/components/PlantCard';
 import { ChoreCard } from '@/components/ChoreCard';
+import { OneTimeTaskCard, OneTimeTask } from '@/components/OneTimeTaskCard';
 import { TaskCarousel } from '@/components/TaskCarousel';
 import CompletionHistory from '@/components/CompletionHistory';
+import { CreateOneTimeTaskDialog } from '@/components/CreateOneTimeTaskDialog';
 import { FamilyMember, Plant, Chore } from '@/lib/types';
 import { apiService } from '@/services/apiService';
 import { Button } from '@/components/ui/button';
@@ -18,8 +20,10 @@ export default function Page() {
   const [selectedMember, setSelectedMember] = useState<FamilyMember | null>(null);
   const [plants, setPlants] = useState<Plant[]>([]);
   const [chores, setChores] = useState<Chore[]>([]);
+  const [oneTimeTasks, setOneTimeTasks] = useState<OneTimeTask[]>([]);
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
   const [manageDialogOpen, setManageDialogOpen] = useState<boolean>(false);
+  const [createTaskDialogOpen, setCreateTaskDialogOpen] = useState<boolean>(false);
   const [historyRefresh, setHistoryRefresh] = useState(0); // Trigger history refresh
 
   // Load family members on mount
@@ -60,6 +64,22 @@ export default function Page() {
           setChores(chores);
         })
         .catch(console.error);
+
+      // Also reload one-time tasks
+      loadOneTimeTasks();
+    }
+  };
+
+  const loadOneTimeTasks = async () => {
+    if (!selectedMember) return;
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/one-time-tasks/${selectedMember.id}`,
+      );
+      const data = await response.json();
+      setOneTimeTasks(data);
+    } catch (error) {
+      console.error('Failed to load one-time tasks:', error);
     }
   };
 
@@ -74,6 +94,8 @@ export default function Page() {
         setChores(chores);
       })
       .catch(console.error);
+
+    loadOneTimeTasks();
   }, [selectedMember]);
 
   // Handler for watering plant
@@ -111,6 +133,23 @@ export default function Page() {
     }
   };
 
+  // Handler for completing one-time task
+  const handleCompleteOneTimeTask = async (taskId: number) => {
+    try {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/one-time-tasks/${taskId}/complete`, {
+        method: 'PATCH',
+      });
+
+      // Remove from list
+      setOneTimeTasks((prev) => prev.filter((task) => task.id !== taskId));
+
+      // Trigger history refresh
+      setHistoryRefresh((prev) => prev + 1);
+    } catch (error) {
+      console.error('Failed to complete task:', error);
+    }
+  };
+
   const handleMemberAvailabilityChange = (memberId: number, newAvailability: number) => {
     if (selectedMember && selectedMember.id === memberId) {
       setSelectedMember({
@@ -140,6 +179,13 @@ export default function Page() {
         key={`chore-${chore.id}`}
         chore={chore}
         onComplete={handleCompleteChore}
+      />
+    )),
+    ...oneTimeTasks.map((task) => (
+      <OneTimeTaskCard
+        key={`onetimetask-${task.id}`}
+        task={task}
+        onComplete={handleCompleteOneTimeTask}
       />
     )),
   ];
@@ -180,7 +226,7 @@ export default function Page() {
                             ? '👩'
                             : '👨'}
                     </div>
-                    <div>
+                    <div className="hidden sm:block">
                       <h1 className="text-lg font-semibold text-gray-900 sm:text-xl lg:text-2xl">
                         {selectedMember.name}&apos;s Aufgaben
                       </h1>
@@ -200,11 +246,23 @@ export default function Page() {
                   <div className="h-8 w-px bg-gray-200 sm:h-10" />
                   <StatCard
                     icon={ListTodo}
-                    count={chores.length}
+                    count={chores.length + oneTimeTasks.length}
                     label="Aufgaben ausstehend"
                     color="blue"
                   />
                   <div className="h-8 w-px bg-gray-200 sm:h-10" />
+                  <Button
+                    variant="outline"
+                    size="default"
+                    className="flex items-center gap-2 border-purple-200 bg-purple-50 text-purple-700 transition-all hover:border-purple-300 hover:bg-purple-100 hover:text-purple-800"
+                    onClick={() => setCreateTaskDialogOpen(true)}
+                  >
+                    <Plus
+                      className="h-4 w-4"
+                      strokeWidth={2}
+                    />
+                    <span className="hidden sm:inline">Einmalige Aufgabe</span>
+                  </Button>
                   <CompletionHistory
                     personId={selectedMember.id}
                     refreshTrigger={historyRefresh}
@@ -232,13 +290,22 @@ export default function Page() {
         )}
       </div>
       {selectedMember && (
-        <ManageTasksDialog
-          open={manageDialogOpen}
-          onOpenChange={setManageDialogOpen}
-          selectedMember={selectedMember}
-          familyMembers={familyMembers}
-          onTasksUpdated={handleTasksUpdated}
-        />
+        <>
+          <ManageTasksDialog
+            open={manageDialogOpen}
+            onOpenChange={setManageDialogOpen}
+            selectedMember={selectedMember}
+            familyMembers={familyMembers}
+            onTasksUpdated={handleTasksUpdated}
+          />
+          <CreateOneTimeTaskDialog
+            open={createTaskDialogOpen}
+            onOpenChange={setCreateTaskDialogOpen}
+            currentMember={selectedMember}
+            familyMembers={familyMembers}
+            onSuccess={loadOneTimeTasks}
+          />
+        </>
       )}
     </div>
   );

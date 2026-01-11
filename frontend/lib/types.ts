@@ -27,6 +27,20 @@ export interface Chore {
   last_assigned_index: number;
 }
 
+export interface OneTimeTask {
+  id: number;
+  name: string;
+  description: string | null;
+  assigned_to: number;
+  created_by: number;
+  created_at: number;
+  completed_at: number | null;
+  due_date: number | null;
+  priority: 'low' | 'medium' | 'high';
+  assigned_to_name?: string;
+  created_by_name?: string;
+}
+
 export type UrgencyLevel = 'low' | 'medium' | 'high';
 
 export interface StatusConfig {
