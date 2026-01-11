@@ -1,4 +1,4 @@
-import { CheckCircle2, Clock, Check, Zap } from 'lucide-react';
+import { CheckCircle2, Circle, Clock, Check, Zap } from 'lucide-react';
 
 export interface OneTimeTask {
   id: number;

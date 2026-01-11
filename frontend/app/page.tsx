@@ -140,8 +140,12 @@ export default function Page() {
         method: 'PATCH',
       });
 
-      // Remove from list
-      setOneTimeTasks((prev) => prev.filter((task) => task.id !== taskId));
+      // Update the task to show as completed instead of removing it
+      setOneTimeTasks((prev) =>
+        prev.map((task) =>
+          task.id === taskId ? { ...task, completed_at: Math.floor(Date.now() / 1000) } : task,
+        ),
+      );
 
       // Trigger history refresh
       setHistoryRefresh((prev) => prev + 1);
@@ -226,7 +230,7 @@ export default function Page() {
                             ? '👩'
                             : '👨'}
                     </div>
-                    <div className="hidden sm:block">
+                    <div>
                       <h1 className="text-lg font-semibold text-gray-900 sm:text-xl lg:text-2xl">
                         {selectedMember.name}&apos;s Aufgaben
                       </h1>
