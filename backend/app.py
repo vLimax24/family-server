@@ -55,6 +55,21 @@ class PushSubscription(BaseModel):
     p256dh: str
     auth: str
 
+class OneTimeTaskCreate(BaseModel):
+    name: str
+    description: str | None = None
+    assigned_to: int
+    created_by: int
+    due_date: int | None = None
+    priority: str = 'medium'
+
+class OneTimeTaskUpdate(BaseModel):
+    name: str
+    description: str | None = None
+    assigned_to: int
+    due_date: int | None = None
+    priority: str = 'medium'
+
 # Endpoints
 
 app = FastAPI()
@@ -258,3 +273,69 @@ async def trigger_daily_reminders():
         return {"status": "Reminders sent successfully"}
     except Exception as e:
         raise HTTPException(500, f"Failed to send reminders: {str(e)}")
+    
+@app.get("/one-time-tasks/{person_id}")
+async def get_one_time_tasks(person_id: int):
+    """Get all incomplete one-time tasks for a person"""
+    return methods.getOneTimeTasksForPerson(person_id)
+
+@app.get("/one-time-tasks")
+async def get_all_one_time_tasks():
+    """Get all one-time tasks"""
+    return methods.getAllOneTimeTasks()
+
+@app.post("/one-time-tasks/create")
+async def create_one_time_task(data: OneTimeTaskCreate):
+    """Create a new one-time task"""
+    try:
+        task_id = methods.createOneTimeTask(
+            name=data.name,
+            assigned_to=data.assigned_to,
+            created_by=data.created_by,
+            description=data.description,
+            due_date=data.due_date,
+            priority=data.priority
+        )
+        return {"status": "Task created successfully", "id": task_id}
+    except Exception as e:
+        raise HTTPException(400, str(e))
+
+@app.patch("/one-time-tasks/{task_id}/complete")
+async def complete_one_time_task(task_id: int):
+    """Mark a one-time task as completed"""
+    try:
+        updated = methods.completeOneTimeTask(task_id)
+        if not updated:
+            raise HTTPException(404, "Task not completed")
+        return {"success": "completed"}
+    except Exception as e:
+        raise HTTPException(400, str(e))
+
+@app.patch("/one-time-tasks/{task_id}/update")
+async def update_one_time_task(task_id: int, data: OneTimeTaskUpdate):
+    """Update a one-time task"""
+    try:
+        updated = methods.updateOneTimeTask(
+            task_id=task_id,
+            name=data.name,
+            description=data.description,
+            assigned_to=data.assigned_to,
+            due_date=data.due_date,
+            priority=data.priority
+        )
+        if not updated:
+            raise HTTPException(404, "Task not updated")
+        return {"status": "Task updated successfully"}
+    except Exception as e:
+        raise HTTPException(400, str(e))
+
+@app.delete("/one-time-tasks/{task_id}")
+async def delete_one_time_task(task_id: int):
+    """Delete a one-time task"""
+    try:
+        deleted = methods.deleteOneTimeTask(task_id)
+        if not deleted:
+            raise HTTPException(404, "Task not deleted")
+        return {"status": "Task deleted successfully"}
+    except Exception as e:
+        raise HTTPException(400, str(e))

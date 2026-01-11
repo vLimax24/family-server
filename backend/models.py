@@ -43,13 +43,26 @@ sql_statements = [
         FOREIGN KEY(temporary_owner_id) REFERENCES person(id)
     );""",
     """CREATE TABLE IF NOT EXISTS push_subscription (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    person_id INTEGER NOT NULL,
-    endpoint TEXT NOT NULL,
-    p256dh TEXT NOT NULL,
-    auth TEXT NOT NULL,
-    created_at INTEGER NOT NULL,
-    FOREIGN KEY(person_id) REFERENCES person(id),
-    UNIQUE(person_id, endpoint)
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        person_id INTEGER NOT NULL,
+        endpoint TEXT NOT NULL,
+        p256dh TEXT NOT NULL,
+        auth TEXT NOT NULL,
+        created_at INTEGER NOT NULL,
+        FOREIGN KEY(person_id) REFERENCES person(id),
+        UNIQUE(person_id, endpoint)
+    );""",
+    """CREATE TABLE IF NOT EXISTS one_time_task (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        description TEXT,
+        assigned_to INTEGER NOT NULL,
+        created_by INTEGER NOT NULL,
+        created_at INTEGER NOT NULL,
+        completed_at INTEGER,
+        due_date INTEGER,
+        priority TEXT DEFAULT 'medium',
+        FOREIGN KEY(assigned_to) REFERENCES person(id),
+        FOREIGN KEY(created_by) REFERENCES person(id)
     );"""
 ]

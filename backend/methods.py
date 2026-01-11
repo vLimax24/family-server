@@ -383,8 +383,24 @@ def getTodayCompletionHistory(person_id):
     
     plants = [dict(row) for row in cursor.fetchall()]
     
+    # Get one-time tasks completed today by this person
+    cursor.execute("""
+        SELECT 
+            ott.id,
+            ott.name,
+            ott.completed_at,
+            'one_time' as task_type,
+            0 as rotation_enabled
+        FROM one_time_task ott
+        WHERE ott.completed_at IS NOT NULL
+          AND date(ott.completed_at, 'unixepoch') = date('now')
+          AND ott.assigned_to = ?
+    """, (person_id,))
+    
+    one_time_tasks = [dict(row) for row in cursor.fetchall()]
+    
     # Combine and sort by completion time (most recent first)
-    all_completions = chores + plants
+    all_completions = chores + plants + one_time_tasks
     all_completions.sort(key=lambda x: x['completed_at'], reverse=True)
     
     return all_completions
@@ -583,7 +599,8 @@ def getDashboardForPerson(person_id):
 
     return {
         "dueChores": getDueChoresOfPerson(person_id),
-        "duePlants": getDuePlantsOfPerson(person_id)
+        "duePlants": getDuePlantsOfPerson(person_id),
+        "oneTimeTasks": getOneTimeTasksForPerson(person_id)
     }
 
 def updatePlant(plant_id, name, interval, owner_id):
@@ -729,3 +746,119 @@ def sendPushNotification(person_id, title, body):
             if ex.response and ex.response.status_code in [404, 410]:
                 cursor.execute("DELETE FROM push_subscription WHERE id = ?", (sub['id'],))
                 connection.commit()
+
+# ---------- ONE-TIME TASK METHODS ----------
+
+def getOneTimeTasksForPerson(person_id):
+    """Get all incomplete one-time tasks assigned to a person"""
+    ensure_positive_int(person_id, "person_id")
+    ensure_person_exists(person_id)
+    
+    cursor.execute("""
+        SELECT ott.*, 
+               p1.name as assigned_to_name,
+               p2.name as created_by_name
+        FROM one_time_task ott
+        JOIN person p1 ON ott.assigned_to = p1.id
+        JOIN person p2 ON ott.created_by = p2.id
+        WHERE ott.assigned_to = ?
+          AND ott.completed_at IS NULL
+        ORDER BY 
+            CASE ott.priority
+                WHEN 'high' THEN 1
+                WHEN 'medium' THEN 2
+                WHEN 'low' THEN 3
+            END,
+            ott.due_date ASC NULLS LAST,
+            ott.created_at ASC
+    """, (person_id,))
+    
+    return [dict(row) for row in cursor.fetchall()]
+
+
+def getAllOneTimeTasks():
+    """Get all one-time tasks (for management view)"""
+    cursor.execute("""
+        SELECT ott.*, 
+               p1.name as assigned_to_name,
+               p2.name as created_by_name
+        FROM one_time_task ott
+        JOIN person p1 ON ott.assigned_to = p1.id
+        JOIN person p2 ON ott.created_by = p2.id
+        ORDER BY ott.completed_at IS NULL DESC, ott.created_at DESC
+    """)
+    
+    return [dict(row) for row in cursor.fetchall()]
+
+
+def createOneTimeTask(name, assigned_to, created_by, description=None, due_date=None, priority='medium'):
+    """Create a new one-time task"""
+    ensure_not_empty(name, "task name")
+    ensure_positive_int(assigned_to, "assigned_to")
+    ensure_positive_int(created_by, "created_by")
+    ensure_person_exists(assigned_to)
+    ensure_person_exists(created_by)
+    
+    if priority not in ['low', 'medium', 'high']:
+        raise ValueError("Priority must be 'low', 'medium', or 'high'")
+    
+    cursor.execute("""
+        INSERT INTO one_time_task 
+        (name, description, assigned_to, created_by, created_at, due_date, priority)
+        VALUES (?, ?, ?, ?, CAST(strftime('%s', 'now') AS INTEGER), ?, ?)
+    """, (name.strip(), description, assigned_to, created_by, due_date, priority))
+    
+    connection.commit()
+    return cursor.lastrowid
+
+
+def completeOneTimeTask(task_id):
+    """Mark a one-time task as completed"""
+    ensure_positive_int(task_id, "task_id")
+    
+    cursor.execute("SELECT id FROM one_time_task WHERE id = ?", (task_id,))
+    if cursor.fetchone() is None:
+        raise ValueError(f"One-time task with id={task_id} does not exist")
+    
+    cursor.execute("""
+        UPDATE one_time_task
+        SET completed_at = CAST(strftime('%s', 'now') AS INTEGER)
+        WHERE id = ?
+    """, (task_id,))
+    
+    connection.commit()
+    return cursor.rowcount > 0
+
+
+def deleteOneTimeTask(task_id):
+    """Delete a one-time task"""
+    ensure_positive_int(task_id, "task_id")
+    
+    cursor.execute("SELECT id FROM one_time_task WHERE id = ?", (task_id,))
+    if cursor.fetchone() is None:
+        raise ValueError(f"One-time task with id={task_id} does not exist")
+    
+    cursor.execute("DELETE FROM one_time_task WHERE id = ?", (task_id,))
+    connection.commit()
+    
+    return cursor.rowcount > 0
+
+
+def updateOneTimeTask(task_id, name, description, assigned_to, due_date, priority):
+    """Update a one-time task"""
+    ensure_positive_int(task_id, "task_id")
+    ensure_not_empty(name, "task name")
+    ensure_positive_int(assigned_to, "assigned_to")
+    ensure_person_exists(assigned_to)
+    
+    if priority not in ['low', 'medium', 'high']:
+        raise ValueError("Priority must be 'low', 'medium', or 'high'")
+    
+    cursor.execute("""
+        UPDATE one_time_task
+        SET name = ?, description = ?, assigned_to = ?, due_date = ?, priority = ?
+        WHERE id = ?
+    """, (name.strip(), description, assigned_to, due_date, priority, task_id))
+    
+    connection.commit()
+    return cursor.rowcount > 0
