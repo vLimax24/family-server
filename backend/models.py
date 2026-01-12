@@ -64,5 +64,16 @@ sql_statements = [
         priority TEXT DEFAULT 'medium',
         FOREIGN KEY(assigned_to) REFERENCES person(id),
         FOREIGN KEY(created_by) REFERENCES person(id)
+    );""",
+    """CREATE TABLE IF NOT EXISTS history (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        task_type TEXT NOT NULL,
+        task_id INTEGER NOT NULL,
+        task_name TEXT NOT NULL,
+        completed_at INTEGER NOT NULL,
+        completed_by INTEGER NOT NULL,
+        was_overdue INTEGER DEFAULT 0,
+        points INTEGER DEFAULT 1,
+        FOREIGN KEY(completed_by) REFERENCES person(id)
     );"""
 ]
