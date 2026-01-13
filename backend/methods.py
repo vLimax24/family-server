@@ -2,6 +2,17 @@ from db import cursor, connection
 import json
 from pywebpush import webpush, WebPushException
 import os
+import time
+from pydantic import BaseModel
+
+class Plant(BaseModel):
+    id: int
+    name: str
+    interval: int
+    last_pour: int
+    owner_id: int
+    temporary_owner_id: int
+    image: str | None = None
 
 
 # ---------- Helper Validation Utilities ----------
@@ -557,10 +568,32 @@ def markPlantWatered(plant_id):
     ensure_plant_exists(plant_id)
 
     cursor.execute("""
+        SELECT * FROM plant WHERE id = ?
+    """, (plant_id, ))
+
+    plant: Plant = dict(cursor.fetchone())
+
+    was_overdue = 0
+
+    if plant['last_pour'] is not None:
+        due_date = plant['last_pour'] + (plant['interval'] * (24 * 60 * 60))
+        overdueThreshold = due_date + (24 * 60 * 60)
+
+        if int(time.time()) > overdueThreshold:
+            was_overdue = 1
+
+    completed_by = plant['temporary_owner_id'] if plant['temporary_owner_id'] is not None else plant['owner_id']
+
+    cursor.execute("""
                    UPDATE plant
                    SET last_pour = CAST(strftime('%s', 'now') AS INTEGER)
                    WHERE id = ?
                    """, (plant_id,))
+    
+    cursor.execute("""
+        INSERT INTO history (task_type, task_id, task_name, completed_at, completed_by, was_overdue, points)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    """, ('plant', plant_id, plant['name'], int(time.time()), completed_by, was_overdue, 10))
 
     connection.commit()
     return cursor.rowcount > 0
