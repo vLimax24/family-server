@@ -1,7 +1,10 @@
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { AvailabilityDialog } from './AvailabilityDialog';
 import { FamilyMember } from '@/lib/types';
 import { useState, useEffect } from 'react';
+import { BarChart3 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 interface UserSelectorProps {
   members: FamilyMember[];
@@ -14,6 +17,7 @@ export function UserSelector({
   onSelectMember,
   onMemberAvailabilityChange,
 }: UserSelectorProps) {
+  const router = useRouter();
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>(members);
 
   useEffect(() => {
@@ -53,6 +57,15 @@ export function UserSelector({
           <p className="px-4 text-base font-light text-slate-600 sm:text-lg lg:text-xl">
             Wer nutzt heute das Dashboard?
           </p>
+          <Button
+            onClick={() => router.push('/statistics')}
+            variant="outline"
+            size="lg"
+            className="group gap-2 border-blue-200 bg-blue-50 text-blue-700 transition-all hover:border-blue-300 hover:bg-blue-100 hover:text-blue-800 hover:shadow-lg"
+          >
+            <BarChart3 className="h-5 w-5 transition-transform group-hover:scale-110" />
+            <span className="font-semibold">Statistiken</span>
+          </Button>
         </div>
 
         <div className="grid grid-cols-2 gap-4 sm:gap-6 md:grid-cols-3 lg:grid-cols-4 lg:gap-8">

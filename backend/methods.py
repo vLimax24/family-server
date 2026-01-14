@@ -478,16 +478,35 @@ def markChoreDone(chore_id):
     ensure_positive_int(chore_id, "chore_id")
     ensure_chore_exists(chore_id)
 
-    cursor.execute("""SELECT rotation_enabled, rotation_order, last_assigned_index
+    cursor.execute("""SELECT *
                       FROM chore
                       WHERE id = ?""", (chore_id,))
-    chore = cursor.fetchone()
+    chore = dict(cursor.fetchone())
 
     if not chore:
         return False
+    
+    was_overdue = 0
+
+    if chore['last_done'] is not None:
+        due_date = chore['last_done'] + (chore['interval'] * (24 * 60 * 60))
+        overdueThreshold = due_date + (24 * 60 * 60)
+
+        if int(time.time()) > overdueThreshold:
+            was_overdue = 1
+
+    rotation_enabled = chore["rotation_enabled"] == 1
+
+    rotation_list = json.loads(chore['rotation_order'] or "[]") if rotation_enabled is True else None
+
+    completed_by = rotation_list[chore['last_assigned_index'] if chore['last_assigned_index'] is not None else 0] if rotation_enabled is True else chore['temporary_worker_id'] if chore['temporary_worker_id'] is not None else chore["worker_id"]
+
+    cursor.execute("""
+        INSERT INTO history (task_type, task_id, task_name, completed_at, completed_by, was_overdue, points)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    """, ('chore', chore_id, chore['name'], int(time.time()), completed_by, was_overdue, 7))
 
     if chore['rotation_enabled'] == 1:
-        rotation_list = json.loads(chore['rotation_order'] or "[]")
         rotation_len = len(rotation_list)
 
         if rotation_len == 0:
@@ -849,9 +868,16 @@ def completeOneTimeTask(task_id):
     """Mark a one-time task as completed"""
     ensure_positive_int(task_id, "task_id")
     
-    cursor.execute("SELECT id FROM one_time_task WHERE id = ?", (task_id,))
-    if cursor.fetchone() is None:
+    cursor.execute("SELECT * FROM one_time_task WHERE id = ?", (task_id,))
+    ott = cursor.fetchone()
+    if ott is None:
         raise ValueError(f"One-time task with id={task_id} does not exist")
+    ott = dict(ott)
+    
+    cursor.execute("""
+        INSERT INTO history (task_type, task_id, task_name, completed_at, completed_by, was_overdue, points)
+        VALUES (?, ?, ?, ?, ?, ?, ?)                   
+""", ('one_time', task_id, ott['name'], int(time.time()), ott['assigned_to'],0, 10 if ott['priority'] == 'high' else 7 if ott['priority'] == 'medium' else 5))
     
     cursor.execute("""
         UPDATE one_time_task
@@ -895,3 +921,25 @@ def updateOneTimeTask(task_id, name, description, assigned_to, due_date, priorit
     
     connection.commit()
     return cursor.rowcount > 0
+
+
+# --------------- STATISTIC METHODS ----------------
+
+def getTotalTaskMetric():
+    cursor.execute("""
+        SELECT person.name, COUNT(*) as total_tasks 
+        FROM history 
+        JOIN person ON person.id = history.completed_by
+        GROUP BY person.id
+    """)
+
+    return [dict(row) for row in cursor.fetchall()]
+
+def getTasksByTypeRatio():
+    cursor.execute("""
+        SELECT task_type, COUNT(*) as total_tasks
+        FROM history
+        GROUP BY history.task_type
+    """)
+
+    return [dict(row) for row in cursor.fetchall()]
