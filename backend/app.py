@@ -355,7 +355,7 @@ async def get_total_task_completions():
         raise HTTPException(400, str(e))
     
 @app.get("/statistics/tasks-by-type")
-async def get_total_task_completions():
+async def get_tasks_by_type_ratio():
     try:
         metric = methods.getTasksByTypeRatio()
 
