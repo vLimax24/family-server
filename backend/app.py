@@ -77,10 +77,11 @@ app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "https://192.168.2.160",        
-        "https://localhost",
-        "http://localhost:3000"
-        "http://192.168.2.142"
+        # "https://192.168.2.160",        
+        # "https://localhost",
+        # "http://localhost:3000"
+        # "http://192.168.2.142"
+        "*"
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -338,5 +339,28 @@ async def delete_one_time_task(task_id: int):
         if not deleted:
             raise HTTPException(404, "Task not deleted")
         return {"status": "Task deleted successfully"}
+    except Exception as e:
+        raise HTTPException(400, str(e))
+    
+
+@app.get("/statistics/completions")
+async def get_total_task_completions():
+    try:
+        metric = methods.getTotalTaskMetric()
+
+        if not metric:
+            raise HTTPException(404, "Metric not fetched correctly.")
+        return metric
+    except Exception as e:
+        raise HTTPException(400, str(e))
+    
+@app.get("/statistics/tasks-by-type")
+async def get_total_task_completions():
+    try:
+        metric = methods.getTasksByTypeRatio()
+
+        if not metric:
+            raise HTTPException(404, "Metric not fetched correctly.")
+        return metric
     except Exception as e:
         raise HTTPException(400, str(e))
