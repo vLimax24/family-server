@@ -208,20 +208,21 @@ export default function Page() {
         ) : (
           <div className="flex h-full flex-col gap-4 sm:gap-6">
             {/* Header */}
-            <div className="px-4 py-3 sm:px-6 sm:py-4">
-              <div className="flex flex-row items-start justify-between gap-3 sm:items-center sm:gap-0">
-                <div className="flex items-center gap-3 sm:gap-4">
+            <div className="border-b border-gray-200 bg-white/80 px-4 py-3 backdrop-blur-sm sm:px-6 sm:py-4">
+              <div className="flex items-center justify-between gap-3">
+                {/* Left: User Info */}
+                <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
                   <button
                     onClick={() => setSelectedMember(null)}
-                    className="rounded-lg p-1.5 transition-all hover:bg-gray-100 active:scale-95 sm:p-2"
+                    className="shrink-0 rounded-lg p-1.5 transition-all hover:bg-gray-100 active:scale-95 sm:p-2"
                   >
                     <ArrowLeft
                       className="h-4 w-4 text-gray-600 sm:h-5 sm:w-5"
                       strokeWidth={2}
                     />
                   </button>
-                  <div className="flex items-center gap-2 sm:gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-linear-to-br from-blue-500 to-blue-600 text-xl text-white sm:h-12 sm:w-12 sm:text-2xl">
+                  <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-blue-500 to-blue-600 text-lg text-white sm:h-11 sm:w-11 sm:text-xl">
                       {selectedMember.name == 'Linas'
                         ? '🧑'
                         : selectedMember.name == 'Amelie'
@@ -230,42 +231,51 @@ export default function Page() {
                             ? '👩'
                             : '👨'}
                     </div>
-                    <div>
-                      <h1 className="text-lg font-semibold text-gray-900 sm:text-xl lg:text-2xl">
-                        {selectedMember.name}&apos;s Aufgaben
+                    <div className="min-w-0">
+                      <h1 className="truncate text-sm font-semibold text-gray-900 sm:text-lg lg:text-xl">
+                        {selectedMember.name}
                       </h1>
-                      <p className="text-xs text-gray-500 sm:text-sm">Täglicher Überblick</p>
+                      <p className="hidden text-xs text-gray-500 sm:block">Aufgaben</p>
                     </div>
                   </div>
                 </div>
 
-                {/* Summary Stats */}
-                <div className="flex items-center gap-3 sm:gap-6">
-                  <StatCard
-                    icon={Sprout}
-                    count={plants.length}
-                    label="Pflanzen zu wässern"
-                    color="amber"
-                  />
-                  <div className="h-8 w-px bg-gray-200 sm:h-10" />
-                  <StatCard
-                    icon={ListTodo}
-                    count={chores.length + oneTimeTasks.length}
-                    label="Aufgaben ausstehend"
-                    color="blue"
-                  />
-                  <div className="h-8 w-px bg-gray-200 sm:h-10" />
+                {/* Center: Stats - Hidden on mobile */}
+                <div className="hidden items-center gap-4 lg:flex xl:gap-6">
+                  <div className="flex items-center gap-2">
+                    <Sprout
+                      className="h-4 w-4 text-amber-600"
+                      strokeWidth={2}
+                    />
+                    <div className="text-lg font-bold text-amber-700">{plants.length}</div>
+                    <span className="text-xs text-gray-600">Pflanzen</span>
+                  </div>
+                  <div className="h-6 w-px bg-gray-300" />
+                  <div className="flex items-center gap-2">
+                    <ListTodo
+                      className="h-4 w-4 text-blue-600"
+                      strokeWidth={2}
+                    />
+                    <div className="text-lg font-bold text-blue-700">
+                      {chores.length + oneTimeTasks.length}
+                    </div>
+                    <span className="text-xs text-gray-600">Aufgaben</span>
+                  </div>
+                </div>
+
+                {/* Right: Action Buttons */}
+                <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
                   <Button
                     variant="outline"
-                    size="default"
-                    className="flex items-center gap-2 border-purple-200 bg-purple-50 text-purple-700 transition-all hover:border-purple-300 hover:bg-purple-100 hover:text-purple-800"
+                    size="sm"
+                    className="border-purple-200 bg-purple-50 p-2 text-purple-700 transition-all hover:border-purple-300 hover:bg-purple-100 sm:gap-2 sm:px-3"
                     onClick={() => setCreateTaskDialogOpen(true)}
                   >
                     <Plus
                       className="h-4 w-4"
                       strokeWidth={2}
                     />
-                    <span className="hidden sm:inline">Einmalige Aufgabe</span>
+                    <span className="hidden xl:inline">Neue Aufgabe</span>
                   </Button>
                   <CompletionHistory
                     personId={selectedMember.id}
@@ -273,14 +283,15 @@ export default function Page() {
                   />
                   <Button
                     variant="outline"
-                    className="flex items-center gap-2 rounded-lg border-slate-200 bg-white/80 p-2 text-slate-600 transition-all hover:border-slate-300 hover:bg-white hover:text-slate-900 active:scale-95"
+                    size="sm"
+                    className="rounded-lg border-slate-200 bg-white p-2 text-slate-600 transition-all hover:border-slate-300 hover:bg-slate-50 sm:gap-2 sm:px-3"
                     onClick={() => setManageDialogOpen(true)}
                   >
                     <Settings
-                      className="h-5 w-5 text-slate-600"
+                      className="h-4 w-4 text-slate-600"
                       strokeWidth={2}
                     />
-                    <div className="hidden md:inline">Aufgaben Anpassen</div>
+                    <span className="hidden xl:inline">Verwalten</span>
                   </Button>
                 </div>
               </div>
