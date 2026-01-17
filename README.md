@@ -4,4 +4,4 @@
 
 Currently in development
 
-Stack: Docker, Nextjs, Fastapi Python
+Stack: Docker, Nextjs, Fastapi Python, Sqlite3
