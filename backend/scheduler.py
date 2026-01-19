@@ -118,13 +118,13 @@ def start_scheduler():
     # Schedule daily at 8:00 AM
     scheduler.add_job(
         send_daily_reminders,
-        CronTrigger(hour=8, minute=0),
+        CronTrigger(hour=6, minute=0),
         id='daily_reminders',
         name='Send daily task reminders',
         replace_existing=True
     )
     
     scheduler.start()
-    logger.info("Scheduler started - daily reminders at 8:00 AM")
-    
+    logger.info("Scheduler started - daily reminders at 6:00 AM")
+
     return scheduler
