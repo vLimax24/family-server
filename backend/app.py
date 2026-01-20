@@ -9,6 +9,8 @@ from scheduler import start_scheduler
 
 scheduler = None
 
+# Start Notification Scheduler for 6AM
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
