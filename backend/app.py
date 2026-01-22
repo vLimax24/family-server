@@ -1,3 +1,4 @@
+from pathlib import Path
 import time
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -232,27 +233,40 @@ async def get_vapid_public_key():
     from py_vapid import Vapid01
     import base64
     from cryptography.hazmat.primitives import serialization
+    from pathlib import Path
     
-    vapid_private_key_path = os.path.join(os.path.dirname(__file__), 'private_key.pem')
-    
-    vapid = Vapid01()
-    
-    if not os.path.exists(vapid_private_key_path):
-        vapid.generate_keys()
-        vapid.save_key(vapid_private_key_path)
+    # Use correct path for environment
+    if os.path.exists('/app'):
+        vapid_private_key_path = '/app/private_key.pem'
     else:
-        vapid = Vapid01.from_file(vapid_private_key_path)
+        vapid_private_key_path = str(Path(__file__).parent / 'private_key.pem')
     
-    if vapid.public_key is None:
-        raise HTTPException(500, "Failed to load VAPID public key")
+    try:
+        vapid = Vapid01()
+        
+        if not os.path.exists(vapid_private_key_path):
+            print(f"Generating new VAPID keys at {vapid_private_key_path}")
+            vapid.generate_keys()
+            vapid.save_key(vapid_private_key_path)
+            print("✓ VAPID keys generated successfully")
+        else:
+            print(f"Loading existing VAPID keys from {vapid_private_key_path}")
+            vapid = Vapid01.from_file(vapid_private_key_path)
+        
+        if vapid.public_key is None:
+            raise HTTPException(500, "Failed to load VAPID public key")
+        
+        public_bytes = vapid.public_key.public_bytes(
+            encoding=serialization.Encoding.X962,
+            format=serialization.PublicFormat.UncompressedPoint
+        )
+        public_b64 = base64.urlsafe_b64encode(public_bytes).rstrip(b'=').decode('utf-8')
+        
+        return {"publicKey": public_b64}
     
-    public_bytes = vapid.public_key.public_bytes(
-        encoding=serialization.Encoding.X962,
-        format=serialization.PublicFormat.UncompressedPoint
-    )
-    public_b64 = base64.urlsafe_b64encode(public_bytes).rstrip(b'=').decode('utf-8')
-    
-    return {"publicKey": public_b64}
+    except Exception as e:
+        print(f"Error loading VAPID keys: {e}")
+        raise HTTPException(500, f"Failed to load VAPID keys: {str(e)}")
 
 
 @app.post("/push/test/{person_id}")

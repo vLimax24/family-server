@@ -771,7 +771,11 @@ def sendPushNotification(person_id, title, body):
     if not subscriptions:
         raise ValueError(f"No push subscriptions found for person {person_id}")
     
-    vapid_key_path = "/app/private_key.pem"
+    if os.path.exists('/app'):
+        vapid_key_path = "/app/private_key.pem"
+    else:
+        vapid_key_path = str(Path(__file__).parent / 'private_key.pem')
+    
     vapid_claims = {"sub": "mailto:linas.gierga@gmail.com"}
     
     payload = json.dumps({
