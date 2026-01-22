@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "cd frontend && npm run dev",
     "dev:backend": "cd backend && .venv\\Scripts\\activate && fastapi dev",
+    "dev:seed": "cd backend && .venv\\Scripts\\activate && python seed.py",
     "docker:dev": "docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build",
     "docker:dev:https": "docker compose -f docker-compose.yml -f docker-compose.dev.yml -f docker-compose.local-https.yml up --build",
     "docker:prod": "docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build",
