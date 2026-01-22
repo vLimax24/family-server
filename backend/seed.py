@@ -3,14 +3,29 @@ from db import connection, cursor
 
 print("Starting database seeding...")
 
-# DB leeren
+# DB leeren - IN THE CORRECT ORDER (respecting foreign keys)
 print("Clearing existing data...")
-cursor.execute("DELETE FROM task_reassignment")  # Clear this first (foreign keys)
-cursor.execute("DELETE FROM plant")
-cursor.execute("DELETE FROM chore")
-cursor.execute("DELETE FROM person")
+
+# Clear tables that reference other tables first
+cursor.execute("DELETE FROM history")           # References person
+cursor.execute("DELETE FROM task_reassignment") # References person
+cursor.execute("DELETE FROM push_subscription") # References person
+cursor.execute("DELETE FROM one_time_task")     # References person
+cursor.execute("DELETE FROM plant")             # References person
+cursor.execute("DELETE FROM chore")             # References person
+cursor.execute("DELETE FROM person")            # Base table
+
+# Reset autoincrement counters
+cursor.execute("DELETE FROM sqlite_sequence WHERE name='history'")
+cursor.execute("DELETE FROM sqlite_sequence WHERE name='task_reassignment'")
+cursor.execute("DELETE FROM sqlite_sequence WHERE name='push_subscription'")
+cursor.execute("DELETE FROM sqlite_sequence WHERE name='one_time_task'")
+cursor.execute("DELETE FROM sqlite_sequence WHERE name='plant'")
+cursor.execute("DELETE FROM sqlite_sequence WHERE name='chore'")
+cursor.execute("DELETE FROM sqlite_sequence WHERE name='person'")
+
 connection.commit()
-print("✓ Cleared all tables")
+print("✓ Cleared all tables and reset autoincrement")
 
 # ---------- Personen ----------
 print("\nCreating persons...")
