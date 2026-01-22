@@ -1,19 +1,8 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-  // Use Turbopack for production builds
-  turbopack: {},
-
-  // Use webpack polling only in development
-  webpack(config, { dev }) {
-    if (dev) {
-      config.watchOptions = {
-        poll: 1000,
-        aggregateTimeout: 300,
-      };
-    }
-    return config;
-  },
+  // Turbopack is enabled by default in Next.js 15+
+  // No special config needed
 };
 
 export default nextConfig;

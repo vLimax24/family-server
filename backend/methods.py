@@ -943,3 +943,15 @@ def getTasksByTypeRatio():
     """)
 
     return [dict(row) for row in cursor.fetchall()]
+
+# def getTasksLastWeek():
+#     one_week_ago = int(time.time()) - (7 * 24 * 60 * 60)
+
+#     cursor.execute("""
+#         SELECT task_type, COUNT(*) as total_tasks
+#         FROM history
+#         WHERE completed_at >= ?
+#         GROUP BY history.task_type
+#     """, (one_week_ago,))
+
+#     return [dict(row) for row in cursor.fetchall()]
