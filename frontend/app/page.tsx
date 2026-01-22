@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { ArrowLeft, Sprout, Settings, ListTodo, Check, Plus } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { UserSelector } from '@/components/UserSelector';
@@ -16,36 +16,6 @@ import { Button } from '@/components/ui/button';
 import { ManageTasksDialog } from '@/components/ManageTasksDialog';
 import { pushService } from '@/services/pushService';
 
-function DebugOverlay({ logs }: { logs: string[] }) {
-  const [show, setShow] = useState(false);
-
-  return (
-    <>
-      <button
-        onClick={() => setShow(!show)}
-        className="fixed right-4 bottom-4 z-50 rounded-full bg-red-500 p-3 text-white shadow-lg"
-      >
-        🐛
-      </button>
-      {show && (
-        <div className="fixed inset-0 z-50 overflow-auto bg-black/90 p-4 text-xs text-white">
-          <button
-            onClick={() => setShow(false)}
-            className="mb-4 rounded bg-red-500 px-4 py-2"
-          >
-            Close
-          </button>
-          <div className="space-y-1 font-mono text-red-500">
-            {logs.map((log, i) => (
-              <div key={i}>{log}</div>
-            ))}
-          </div>
-        </div>
-      )}
-    </>
-  );
-}
-
 export default function Page() {
   const [selectedMember, setSelectedMember] = useState<FamilyMember | null>(null);
   const [plants, setPlants] = useState<Plant[]>([]);
@@ -55,77 +25,35 @@ export default function Page() {
   const [manageDialogOpen, setManageDialogOpen] = useState<boolean>(false);
   const [createTaskDialogOpen, setCreateTaskDialogOpen] = useState<boolean>(false);
   const [historyRefresh, setHistoryRefresh] = useState(0); // Trigger history refresh
-  const [debugLogs, setDebugLogs] = useState<string[]>([]);
 
   // Load family members on mount
   useEffect(() => {
     apiService.getFamilyMembers().then(setFamilyMembers).catch(console.error);
   }, []);
 
-  // Use ref to avoid stale closure in callbacks
-  const addLog = useCallback((msg: string) => {
-    console.log(msg);
-    setDebugLogs((prev) => [...prev, `${new Date().toLocaleTimeString()}: ${msg}`]);
-  }, []);
-
-  // Register service worker - only once on mount
-  useEffect(() => {
-    if ('serviceWorker' in navigator) {
-      addLog('[SW] Registering service worker...');
-      navigator.serviceWorker
-        .register('/sw.js')
-        .then((registration) => {
-          addLog('[SW] ✓ Registered: ' + registration.scope);
-        })
-        .catch((error) => {
-          addLog('[SW] ✗ Failed: ' + error.message);
-        });
-    } else {
-      addLog('[SW] ✗ Not supported');
-    }
-  }, [addLog]);
-
   // Handle push notifications
   useEffect(() => {
-    if (!selectedMember) return;
-
-    const handlePushSetup = async () => {
+    if (selectedMember) {
       const notificationsSupported =
         'Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window;
 
-      addLog(`[PUSH] Member selected: ${selectedMember.name}`);
-      addLog(`[PUSH] Notifications supported: ${notificationsSupported}`);
-      addLog(`[PUSH] Permission: ${Notification.permission}`);
-
       if (!notificationsSupported) {
-        addLog('[PUSH] ✗ Push not supported on this device');
+        console.log('Push notifications not supported on this device/browser');
         return;
       }
 
       if (Notification.permission === 'default') {
-        addLog('[PUSH] Waiting 2s before asking permission...');
-        await new Promise((resolve) => setTimeout(resolve, 2000));
-
-        addLog('[PUSH] Requesting permission...');
-        const granted = await pushService.requestPermission();
-        addLog(`[PUSH] Permission granted: ${granted}`);
-
-        if (granted) {
-          addLog(`[PUSH] Subscribing person ${selectedMember.id}...`);
-          const success = await pushService.subscribeToPush(selectedMember.id);
-          addLog(`[PUSH] Subscribe result: ${success}`);
-        }
+        setTimeout(async () => {
+          const granted = await pushService.requestPermission();
+          if (granted) {
+            await pushService.subscribeToPush(selectedMember.id);
+          }
+        }, 2000);
       } else if (Notification.permission === 'granted') {
-        addLog(`[PUSH] Permission already granted, subscribing...`);
-        const success = await pushService.subscribeToPush(selectedMember.id);
-        addLog(`[PUSH] Subscribe result: ${success}`);
-      } else {
-        addLog('[PUSH] ✗ Permission denied');
+        pushService.subscribeToPush(selectedMember.id);
       }
-    };
-
-    handlePushSetup();
-  }, [selectedMember, addLog]);
+    }
+  }, [selectedMember]);
 
   const handleTasksUpdated = () => {
     if (selectedMember) {
@@ -268,7 +196,6 @@ export default function Page() {
 
   return (
     <div className="h-screen w-screen overflow-hidden bg-linear-to-br from-gray-50 via-blue-50/30 to-gray-50">
-      <DebugOverlay logs={debugLogs} />
       <div className="flex h-full flex-col">
         {!selectedMember ? (
           <div className="flex flex-1 items-center justify-center">
