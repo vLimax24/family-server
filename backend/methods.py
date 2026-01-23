@@ -959,3 +959,153 @@ def getTasksByTypeRatio():
 #     """, (one_week_ago,))
 
 #     return [dict(row) for row in cursor.fetchall()]
+
+
+def getPersonalCompletionStreak(person_id):
+    """
+    Calculate current streak and longest streak for a person.
+    Streak = consecutive days with at least one completed task.
+    """
+    ensure_positive_int(person_id, "person_id")
+    ensure_person_exists(person_id)
+    
+    # Get all completion dates for this person (UTC dates only)
+    cursor.execute("""
+        SELECT DISTINCT DATE(completed_at, 'unixepoch') as completion_date
+        FROM history
+        WHERE completed_by = ?
+        ORDER BY completion_date DESC
+    """, (person_id,))
+    
+    rows = cursor.fetchall()
+    
+    if not rows:
+        return {
+            "person_id": person_id,
+            "current_streak": 0,
+            "longest_streak": 0,
+            "last_completion_date": None
+        }
+    
+    from datetime import datetime, timedelta
+    
+    dates = [datetime.strptime(row['completion_date'], '%Y-%m-%d').date() for row in rows]
+    today = datetime.utcnow().date()
+    
+    # Calculate current streak
+    current_streak = 0
+    check_date = today
+    
+    for date in dates:
+        if date == check_date:
+            current_streak += 1
+            check_date -= timedelta(days=1)
+        elif date < check_date:
+            break
+    
+    # Calculate longest streak
+    longest_streak = 0
+    temp_streak = 1
+    
+    for i in range(len(dates) - 1):
+        diff = (dates[i] - dates[i + 1]).days
+        if diff == 1:
+            temp_streak += 1
+            longest_streak = max(longest_streak, temp_streak)
+        else:
+            temp_streak = 1
+    
+    longest_streak = max(longest_streak, temp_streak, current_streak)
+    
+    return {
+        "person_id": person_id,
+        "current_streak": current_streak,
+        "longest_streak": longest_streak,
+        "last_completion_date": dates[0].isoformat() if dates else None
+    }
+
+
+def getWeeklyCompletionTrend(person_id=None):
+    """
+    Get task completions grouped by week for the last 12 weeks.
+    If person_id is provided, get personal trend. Otherwise, get family trend.
+    """
+    if person_id:
+        ensure_positive_int(person_id, "person_id")
+        ensure_person_exists(person_id)
+    
+    # Calculate timestamp for 12 weeks ago
+    twelve_weeks_ago = int(time.time()) - (12 * 7 * 24 * 60 * 60)
+    
+    if person_id:
+        # Personal trend
+        cursor.execute("""
+            SELECT 
+                strftime('%Y-W%W', completed_at, 'unixepoch') as week,
+                COUNT(*) as task_count
+            FROM history
+            WHERE completed_by = ?
+              AND completed_at >= ?
+            GROUP BY week
+            ORDER BY week ASC
+        """, (person_id, twelve_weeks_ago))
+    else:
+        # Family trend
+        cursor.execute("""
+            SELECT 
+                strftime('%Y-W%W', completed_at, 'unixepoch') as week,
+                COUNT(*) as task_count
+            FROM history
+            WHERE completed_at >= ?
+            GROUP BY week
+            ORDER BY week ASC
+        """, (twelve_weeks_ago,))
+    
+    return [dict(row) for row in cursor.fetchall()]
+
+
+def getCompletionRate(person_id):
+    """
+    Calculate completion rate: on-time vs overdue completions.
+    """
+    ensure_positive_int(person_id, "person_id")
+    ensure_person_exists(person_id)
+    
+    # Get total completed tasks
+    cursor.execute("""
+        SELECT COUNT(*) as total_completed
+        FROM history
+        WHERE completed_by = ?
+    """, (person_id,))
+    
+    total = cursor.fetchone()['total_completed']
+    
+    if total == 0:
+        return {
+            "person_id": person_id,
+            "total_completed": 0,
+            "on_time": 0,
+            "overdue": 0,
+            "on_time_percentage": 0,
+            "overdue_percentage": 0
+        }
+    
+    # Get overdue count
+    cursor.execute("""
+        SELECT COUNT(*) as overdue_count
+        FROM history
+        WHERE completed_by = ?
+          AND was_overdue = 1
+    """, (person_id,))
+    
+    overdue = cursor.fetchone()['overdue_count']
+    on_time = total - overdue
+    
+    return {
+        "person_id": person_id,
+        "total_completed": total,
+        "on_time": on_time,
+        "overdue": overdue,
+        "on_time_percentage": round((on_time / total) * 100, 1),
+        "overdue_percentage": round((overdue / total) * 100, 1)
+    }
