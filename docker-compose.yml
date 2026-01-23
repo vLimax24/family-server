@@ -11,7 +11,7 @@ services:
     env_file:
       - ./backend/.env.production
     volumes:
-      - backend-db:/app/data
+      - backend-db-prod:/app/data
 
   frontend:
     build:
