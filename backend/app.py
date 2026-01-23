@@ -75,7 +75,7 @@ class OneTimeTaskUpdate(BaseModel):
 
 # Endpoints
 
-app = FastAPI()
+app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
