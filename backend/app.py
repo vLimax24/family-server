@@ -380,3 +380,29 @@ async def get_tasks_by_type_ratio():
         return metric
     except Exception as e:
         raise HTTPException(400, str(e))
+@app.get("/statistics/personal-streak/{person_id}")
+async def get_personal_completion_streak(person_id: int):
+    """Get current and longest completion streak for a person"""
+    try:
+        streak = methods.getPersonalCompletionStreak(person_id)
+        return streak
+    except Exception as e:
+        raise HTTPException(400, str(e))
+
+@app.get("/statistics/weekly-trend")
+async def get_weekly_completion_trend(person_id: int = None):
+    """Get weekly completion trend for last 12 weeks (family or personal)"""
+    try:
+        trend = methods.getWeeklyCompletionTrend(person_id)
+        return trend
+    except Exception as e:
+        raise HTTPException(400, str(e))
+
+@app.get("/statistics/completion-rate/{person_id}")
+async def get_completion_rate(person_id: int):
+    """Get completion rate (on-time vs overdue) for a person"""
+    try:
+        rate = methods.getCompletionRate(person_id)
+        return rate
+    except Exception as e:
+        raise HTTPException(400, str(e))
