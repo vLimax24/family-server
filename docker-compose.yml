@@ -10,8 +10,6 @@ services:
       PYTHONUNBUFFERED: 1
     env_file:
       - ./backend/.env.production
-    volumes:
-      - backend-db-prod:/app/data
 
   frontend:
     build:
