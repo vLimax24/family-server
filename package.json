@@ -8,18 +8,9 @@
     "dev:seed": "cd backend && .venv\\Scripts\\activate && python seed.py",
     "dev:vapid": "cd backend && .venv\\Scripts\\activate && python generate_vapid_keys.py",
     "docker:dev": "docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build",
-    "docker:dev:https": "docker compose -f docker-compose.yml -f docker-compose.dev.yml -f docker-compose.local-https.yml up --build",
-    "docker:prod": "docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build",
-    "docker:prod:https": "docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.local-https.yml up --build",
-    "docker:down": "docker compose -f docker-compose.yml -f docker-compose.dev.yml -f docker-compose.local-https.yml down",
-    "docker:down:dev": "docker compose -f docker-compose.yml -f docker-compose.dev.yml down",
-    "docker:down:prod": "docker compose -f docker-compose.yml -f docker-compose.prod.yml down",
-    "docker:logs": "docker compose -f docker-compose.yml -f docker-compose.dev.yml -f docker-compose.local-https.yml logs -f",
-    "docker:logs:nginx": "docker logs family-nginx -f",
-    "docker:logs:backend": "docker logs family-backend -f",
-    "docker:logs:frontend": "docker logs family-frontend -f",
-    "docker:clean": "docker compose -f docker-compose.yml -f docker-compose.dev.yml -f docker-compose.local-https.yml down -v --rmi all",
-    "docker:restart": "npm run docker:down && npm run docker:dev:https"
+    "docker:prod": "docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d",
+    "docker:down": "docker compose -f docker-compose.yml -f docker-compose.dev.yml down",
+    "docker:down:prod": "docker compose -f docker-compose.yml -f docker-compose.prod.yml down"
   },
   "repository": {
     "type": "git",
