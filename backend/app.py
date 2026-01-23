@@ -275,8 +275,8 @@ async def send_test_push(person_id: int):
     try:
         methods.sendPushNotification(
             person_id=person_id,
-            title="🧪 Test Notification",
-            body=f"Test notification sent at {time.strftime('%H:%M:%S')}. If you see this, it's working! 🎉"
+            title="🧪 Test Benachrichtigung",
+            body=f"Wenn du das siehst funktionierts"
         )
         return {"status": "notification sent", "person_id": person_id}
     except Exception as e:
