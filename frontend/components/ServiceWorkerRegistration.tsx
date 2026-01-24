@@ -18,5 +18,5 @@ export function ServiceWorkerRegistration() {
     }
   }, []);
 
-  return null; // This component doesn't render anything
+  return null;
 }
