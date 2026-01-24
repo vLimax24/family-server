@@ -1,3 +1,4 @@
+from pathlib import Path
 from db import cursor, connection
 import json
 from pywebpush import webpush, WebPushException
@@ -765,6 +766,9 @@ def getPushSubscriptions(person_id):
 def sendPushNotification(person_id, title, body):
     """Send a push notification to a person"""
     from pywebpush import webpush, WebPushException
+    import logging
+    
+    logger = logging.getLogger(__name__)
     
     subscriptions = getPushSubscriptions(person_id)
     
@@ -784,8 +788,11 @@ def sendPushNotification(person_id, title, body):
         "icon": "/icon.png",
     })
     
+    success_count = 0
+    
     for sub in subscriptions:
         try:
+            logger.info(f"Sending notification to subscription {sub['id']} for person {person_id}")
             webpush(
                 subscription_info={
                     "endpoint": sub['endpoint'],
@@ -798,10 +805,25 @@ def sendPushNotification(person_id, title, body):
                 vapid_private_key=vapid_key_path,
                 vapid_claims=vapid_claims
             )
+            success_count += 1
+            logger.info(f"✓ Notification sent successfully to subscription {sub['id']}")
         except WebPushException as ex:
+            logger.error(f"WebPushException for subscription {sub['id']}: {ex}")
             if ex.response and ex.response.status_code in [404, 410]:
+                logger.info(f"Deleting expired subscription {sub['id']}")
                 cursor.execute("DELETE FROM push_subscription WHERE id = ?", (sub['id'],))
                 connection.commit()
+            # Continue to next subscription even if this one failed
+            continue
+        except Exception as ex:
+            logger.error(f"Unexpected error sending to subscription {sub['id']}: {ex}")
+            # Continue to next subscription
+            continue
+    
+    logger.info(f"Sent notifications to {success_count}/{len(subscriptions)} subscriptions for person {person_id}")
+    
+    if success_count == 0:
+        raise ValueError(f"Failed to send to any subscriptions for person {person_id}")
 
 # ---------- ONE-TIME TASK METHODS ----------
 
