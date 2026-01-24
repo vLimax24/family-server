@@ -211,7 +211,7 @@ export default function Page() {
   ];
 
   return (
-    <div className="h-screen w-screen overflow-hidden bg-slate-900">
+    <div className="h-screen w-screen bg-slate-900">
       <div className="flex h-full flex-col">
         {!selectedMember ? (
           <div className="flex flex-1 items-center justify-center">
