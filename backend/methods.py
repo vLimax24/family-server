@@ -767,9 +767,9 @@ def sendPushNotification(person_id, title, body):
     """Send a push notification to a person"""
     from pywebpush import webpush, WebPushException
     from pathlib import Path
-    import logging
-    
     from db import cursor, connection
+    import logging
+    import re
     
     logger = logging.getLogger(__name__)
     
@@ -812,7 +812,21 @@ def sendPushNotification(person_id, title, body):
             logger.info(f"✓ Notification sent successfully to subscription {sub['id']}")
         except WebPushException as ex:
             logger.error(f"WebPushException for subscription {sub['id']}: {ex}")
-            if ex.response and ex.response.status_code in [404, 410]:
+            
+            # Parse the error message to check for 410/404 or expired/unsubscribed
+            error_str = str(ex)
+            should_delete = False
+            
+            # Check if response object exists and has status_code
+            if hasattr(ex, 'response') and ex.response and hasattr(ex.response, 'status_code'):
+                should_delete = ex.response.status_code in [404, 410]
+                logger.info(f"Response status code: {ex.response.status_code}")
+            # Fallback: parse the error string for status codes or keywords
+            elif re.search(r'(410|404)', error_str) or re.search(r'(expired|unsubscribed)', error_str, re.IGNORECASE):
+                should_delete = True
+                logger.info(f"Detected expired subscription from error message")
+            
+            if should_delete:
                 logger.info(f"Deleting expired subscription {sub['id']}")
                 try:
                     cursor.execute("DELETE FROM push_subscription WHERE id = ?", (sub['id'],))
@@ -820,6 +834,7 @@ def sendPushNotification(person_id, title, body):
                     logger.info(f"✓ Successfully deleted subscription {sub['id']}")
                 except Exception as delete_error:
                     logger.error(f"Failed to delete subscription {sub['id']}: {delete_error}")
+            
             # Continue to next subscription even if this one failed
             continue
         except Exception as ex:
