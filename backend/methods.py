@@ -766,7 +766,10 @@ def getPushSubscriptions(person_id):
 def sendPushNotification(person_id, title, body):
     """Send a push notification to a person"""
     from pywebpush import webpush, WebPushException
+    from pathlib import Path
     import logging
+    
+    from db import cursor, connection
     
     logger = logging.getLogger(__name__)
     
@@ -811,8 +814,12 @@ def sendPushNotification(person_id, title, body):
             logger.error(f"WebPushException for subscription {sub['id']}: {ex}")
             if ex.response and ex.response.status_code in [404, 410]:
                 logger.info(f"Deleting expired subscription {sub['id']}")
-                cursor.execute("DELETE FROM push_subscription WHERE id = ?", (sub['id'],))
-                connection.commit()
+                try:
+                    cursor.execute("DELETE FROM push_subscription WHERE id = ?", (sub['id'],))
+                    connection.commit()
+                    logger.info(f"✓ Successfully deleted subscription {sub['id']}")
+                except Exception as delete_error:
+                    logger.error(f"Failed to delete subscription {sub['id']}: {delete_error}")
             # Continue to next subscription even if this one failed
             continue
         except Exception as ex:
