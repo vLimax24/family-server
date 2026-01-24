@@ -219,7 +219,7 @@ export default function Page() {
   ];
 
   return (
-    <div className="h-screen w-screen overflow-hidden bg-linear-to-br from-gray-50 via-blue-50/30 to-gray-50">
+    <div className="h-screen w-screen bg-linear-to-br from-gray-50 via-blue-50/30 to-gray-50">
       <div className="flex h-full flex-col">
         {!selectedMember ? (
           <div className="flex flex-1 items-center justify-center">
