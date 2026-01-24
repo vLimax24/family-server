@@ -70,7 +70,7 @@ export const AvailabilityDialog = (props: {
         <Button
           variant="ghost"
           size="sm"
-          className="w-full border border-slate-200/60 bg-white/50 text-slate-700 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900"
+          className="w-full border border-slate-700 bg-slate-900/50 text-slate-300 hover:border-slate-600 hover:bg-slate-800 hover:text-slate-100"
         >
           <CalendarIcon className="mr-2 h-3.5 w-3.5" />
           <span className="hidden sm:inline">Verfügbarkeit ändern</span>
@@ -103,8 +103,8 @@ export const AvailabilityDialog = (props: {
               value="available"
               className="space-y-4 pt-6"
             >
-              <div className="rounded-lg border border-emerald-200 bg-emerald-50/50 p-4">
-                <p className="text-sm text-emerald-900">
+              <div className="rounded-lg border border-teal-500/30 bg-teal-500/10 p-4">
+                <p className="text-sm text-teal-400">
                   ✓ {props.member.name} ist verfügbar und erhält alle zugewiesenen Aufgaben.
                 </p>
               </div>
@@ -114,8 +114,8 @@ export const AvailabilityDialog = (props: {
               value="unavailable"
               className="space-y-6 pt-6"
             >
-              <div className="rounded-lg border border-amber-200 bg-amber-50/50 p-4">
-                <p className="text-sm text-amber-900">
+              <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4">
+                <p className="text-sm text-amber-400">
                   ⚠ Alle nicht-rotierenden Aufgaben werden automatisch an verfügbare Personen
                   umverteilt.
                 </p>

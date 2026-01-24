@@ -64,6 +64,32 @@ export default function CompletionHistory({ personId, refreshTrigger }: Completi
     return `Vor ${Math.floor(diff / 3600)} Std.`;
   };
 
+  const getTaskTypeColor = (taskType: string) => {
+    switch (taskType) {
+      case 'plant':
+        return {
+          bg: 'bg-teal-500/10',
+          hoverBg: 'group-hover:bg-teal-500/20',
+          icon: 'text-teal-400',
+          badge: 'bg-teal-500/20 text-teal-400 border-teal-500/30',
+        };
+      case 'one_time':
+        return {
+          bg: 'bg-purple-500/10',
+          hoverBg: 'group-hover:bg-purple-500/20',
+          icon: 'text-purple-400',
+          badge: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
+        };
+      default:
+        return {
+          bg: 'bg-indigo-500/10',
+          hoverBg: 'group-hover:bg-indigo-500/20',
+          icon: 'text-indigo-400',
+          badge: 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30',
+        };
+    }
+  };
+
   return (
     <Sheet
       open={open}
@@ -72,8 +98,8 @@ export default function CompletionHistory({ personId, refreshTrigger }: Completi
       <SheetTrigger asChild>
         <Button
           variant="outline"
-          size="default"
-          className="relative flex items-center gap-2 border-slate-200 bg-white/80 text-slate-700 backdrop-blur-sm transition-all hover:border-slate-300 hover:bg-white hover:text-slate-900"
+          size="sm"
+          className="relative flex items-center gap-2 border-slate-700 bg-slate-900/50 text-slate-300 transition-all hover:border-slate-600 hover:bg-slate-800 hover:text-slate-100"
         >
           <History
             className="h-4 w-4"
@@ -83,7 +109,7 @@ export default function CompletionHistory({ personId, refreshTrigger }: Completi
           {completions.length > 0 && (
             <Badge
               variant="secondary"
-              className="ml-1 h-5 min-w-5 rounded-full bg-emerald-500 px-1.5 text-xs text-white hover:bg-emerald-600"
+              className="ml-1 h-4 min-w-5 rounded-full bg-teal-500 px-1.5 text-xs text-white hover:bg-teal-600"
             >
               {completions.length}
             </Badge>
@@ -91,123 +117,132 @@ export default function CompletionHistory({ personId, refreshTrigger }: Completi
         </Button>
       </SheetTrigger>
 
-      <SheetContent className="w-full sm:max-w-lg">
+      <SheetContent className="w-full border-slate-700 bg-slate-800 sm:max-w-lg">
         <SheetHeader>
-          <SheetTitle className="flex items-center gap-2">
-            <History className="h-5 w-5 text-emerald-600" />
+          <SheetTitle className="flex items-center gap-2 text-slate-100">
+            <History className="h-5 w-5 text-teal-400" />
             Heute erledigt
           </SheetTitle>
-          <SheetDescription>Alle Aufgaben, die du heute abgeschlossen hast</SheetDescription>
+          <SheetDescription className="text-slate-400">
+            Alle Aufgaben, die du heute abgeschlossen hast
+          </SheetDescription>
         </SheetHeader>
 
         {loading ? (
           <div className="flex h-64 items-center justify-center">
-            <div className="text-muted-foreground text-sm">Lade Verlauf...</div>
+            <div className="text-sm text-slate-400">Lade Verlauf...</div>
           </div>
         ) : completions.length === 0 ? (
           <div className="flex h-64 flex-col items-center justify-center gap-3">
-            <div className="rounded-full bg-slate-100 p-4">
+            <div className="rounded-full bg-slate-700 p-4">
               <CheckCircle2
-                className="h-8 w-8 text-slate-400"
+                className="h-8 w-8 text-slate-500"
                 strokeWidth={2}
               />
             </div>
             <div className="text-center">
-              <p className="font-medium text-slate-900">Noch keine Aufgaben erledigt</p>
-              <p className="text-muted-foreground text-sm">Erledigte Aufgaben erscheinen hier</p>
+              <p className="font-medium text-slate-100">Noch keine Aufgaben erledigt</p>
+              <p className="text-sm text-slate-400">Erledigte Aufgaben erscheinen hier</p>
             </div>
           </div>
         ) : (
           <ScrollArea className="mt-6 h-[calc(100vh-12rem)]">
-            <div className="space-y-3 px-4">
-              {completions.map((completion, index) => (
-                <div
-                  key={`${completion.task_type}-${completion.id}-${index}`}
-                  className="group relative overflow-hidden rounded-lg border border-slate-200 bg-white p-4 transition-all hover:border-emerald-200 hover:bg-emerald-50/30"
-                >
-                  {/* Completion indicator line */}
-                  <div className="absolute top-0 left-0 h-full w-1 bg-emerald-500" />
+            <div className="space-y-3 pr-4">
+              {completions.map((completion, index) => {
+                const colors = getTaskTypeColor(completion.task_type);
+                return (
+                  <div
+                    key={`${completion.task_type}-${completion.id}-${index}`}
+                    className="group relative overflow-hidden rounded-lg border border-slate-700 bg-slate-900/50 p-4 transition-all hover:border-slate-600 hover:bg-slate-800"
+                  >
+                    {/* Completion indicator line */}
+                    <div
+                      className={`absolute top-0 left-0 h-full w-1 ${completion.task_type === 'plant' ? 'bg-teal-500' : completion.task_type === 'one_time' ? 'bg-purple-500' : 'bg-indigo-500'}`}
+                    />
 
-                  <div className="flex items-start gap-3">
-                    {/* Icon */}
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-100 transition-colors group-hover:bg-emerald-200">
-                      {completion.task_type === 'plant' ? (
-                        <Droplet
-                          className="h-5 w-5 text-emerald-600"
-                          strokeWidth={2}
-                        />
-                      ) : completion.task_type === 'one_time' ? (
-                        <Zap
-                          className="h-5 w-5 text-purple-600"
-                          strokeWidth={2}
-                        />
-                      ) : (
-                        <CheckCircle2
-                          className="h-5 w-5 text-emerald-600"
-                          strokeWidth={2}
-                        />
-                      )}
-                    </div>
-
-                    {/* Content */}
-                    <div className="min-w-0 flex-1">
-                      <div className="mb-1 flex items-start justify-between gap-2">
-                        <h4 className="font-semibold text-slate-900">{completion.name}</h4>
-                        <div className="flex shrink-0 items-center gap-1 text-xs font-medium text-emerald-700">
-                          <Clock
-                            className="h-3 w-3"
+                    <div className="flex items-start gap-3">
+                      {/* Icon */}
+                      <div
+                        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${colors.bg} transition-colors ${colors.hoverBg}`}
+                      >
+                        {completion.task_type === 'plant' ? (
+                          <Droplet
+                            className={`h-5 w-5 ${colors.icon}`}
                             strokeWidth={2}
                           />
-                          {formatTime(completion.completed_at)}
-                        </div>
+                        ) : completion.task_type === 'one_time' ? (
+                          <Zap
+                            className={`h-5 w-5 ${colors.icon}`}
+                            strokeWidth={2}
+                          />
+                        ) : (
+                          <CheckCircle2
+                            className={`h-5 w-5 ${colors.icon}`}
+                            strokeWidth={2}
+                          />
+                        )}
                       </div>
 
-                      <div className="flex items-center gap-2">
-                        <Badge
-                          variant="secondary"
-                          className="text-xs"
-                        >
-                          {completion.task_type === 'plant'
-                            ? 'Pflanze'
-                            : completion.task_type === 'one_time'
-                              ? 'Einmalig'
-                              : 'Aufgabe'}
-                        </Badge>
+                      {/* Content */}
+                      <div className="min-w-0 flex-1">
+                        <div className="mb-1 flex items-start justify-between gap-2">
+                          <h4 className="font-semibold text-slate-100">{completion.name}</h4>
+                          <div className="flex shrink-0 items-center gap-1 text-xs font-medium text-teal-400">
+                            <Clock
+                              className="h-3 w-3"
+                              strokeWidth={2}
+                            />
+                            {formatTime(completion.completed_at)}
+                          </div>
+                        </div>
 
-                        {completion.rotation_enabled === 1 && (
+                        <div className="flex items-center gap-2">
                           <Badge
-                            variant="outline"
-                            className="gap-1 text-xs"
+                            variant="secondary"
+                            className={`text-xs ${colors.badge}`}
                           >
-                            <RotateCw className="h-3 w-3" />
-                            Rotation
+                            {completion.task_type === 'plant'
+                              ? 'Pflanze'
+                              : completion.task_type === 'one_time'
+                                ? 'Einmalig'
+                                : 'Aufgabe'}
                           </Badge>
-                        )}
 
-                        <span className="text-muted-foreground text-xs">
-                          {getTimeAgo(completion.completed_at)}
-                        </span>
+                          {completion.rotation_enabled === 1 && (
+                            <Badge
+                              variant="outline"
+                              className="gap-1 border-slate-600 text-xs text-slate-400"
+                            >
+                              <RotateCw className="h-3 w-3" />
+                              Rotation
+                            </Badge>
+                          )}
+
+                          <span className="text-xs text-slate-500">
+                            {getTimeAgo(completion.completed_at)}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </ScrollArea>
         )}
 
         {/* Summary Footer */}
         {completions.length > 0 && (
-          <div className="absolute right-0 bottom-0 left-0 border-t bg-white p-6">
+          <div className="absolute right-0 bottom-0 left-0 border-t border-slate-700 bg-slate-800 p-6">
             <div className="flex items-center justify-between">
               <div className="text-sm">
-                <span className="text-muted-foreground">Gesamt: </span>
-                <span className="font-semibold text-slate-900">
+                <span className="text-slate-400">Gesamt: </span>
+                <span className="font-semibold text-slate-100">
                   {completions.length} {completions.length === 1 ? 'Aufgabe' : 'Aufgaben'}
                 </span>
               </div>
               <CheckCircle2
-                className="h-5 w-5 text-emerald-600"
+                className="h-5 w-5 text-teal-400"
                 strokeWidth={2}
               />
             </div>

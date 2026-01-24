@@ -1,8 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Sprout, Settings, ListTodo, Check, Plus } from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
+import { ArrowLeft, Sprout, Settings, ListTodo, Plus } from 'lucide-react';
 import { UserSelector } from '@/components/UserSelector';
 import { PlantCard } from '@/components/PlantCard';
 import { ChoreCard } from '@/components/ChoreCard';
@@ -30,7 +29,6 @@ export default function Page() {
     apiService.getFamilyMembers().then(setFamilyMembers).catch(console.error);
   }, []);
 
-  // Handle push notifications
   useEffect(() => {
     if (!selectedMember) return;
 
@@ -46,7 +44,6 @@ export default function Page() {
 
     const setupNotifications = async () => {
       if (Notification.permission === 'default') {
-        // Wait 2 seconds before asking (don't overwhelm user immediately)
         timeoutId = setTimeout(async () => {
           try {
             const granted = await pushService.requestPermission();
@@ -59,7 +56,6 @@ export default function Page() {
           }
         }, 2000);
       } else if (Notification.permission === 'granted') {
-        // Already granted, subscribe immediately
         try {
           await pushService.subscribeToPush(selectedMember.id);
           console.log('✓ Push subscription refreshed');
@@ -71,7 +67,6 @@ export default function Page() {
 
     setupNotifications();
 
-    // Cleanup: cancel timeout if component unmounts or selectedMember changes
     return () => {
       if (timeoutId) {
         clearTimeout(timeoutId);
@@ -89,7 +84,6 @@ export default function Page() {
         })
         .catch(console.error);
 
-      // Also reload one-time tasks
       loadOneTimeTasks();
     }
   };
@@ -107,7 +101,6 @@ export default function Page() {
     }
   };
 
-  // Load dashboard data when member is selected
   useEffect(() => {
     if (!selectedMember) return;
 
@@ -122,56 +115,46 @@ export default function Page() {
     loadOneTimeTasks();
   }, [selectedMember]);
 
-  // Handler for watering plant
   const handleWaterPlant = async (plantId: number) => {
     try {
       await apiService.waterPlant(plantId);
-      // Note: The PlantCard now handles localStorage updates internally
-      // We keep the optimistic update here for the backend state
       setPlants((prev) =>
         prev.map((plant) =>
           plant.id === plantId ? { ...plant, last_pour: Date.now() / 1000 } : plant,
         ),
       );
-      // Trigger history refresh
       setHistoryRefresh((prev) => prev + 1);
     } catch (error) {
       console.error('Failed to water plant:', error);
     }
   };
 
-  // Handler for completing chore
   const handleCompleteChore = async (choreId: number) => {
     try {
       await apiService.completeChore(choreId);
-      // Note: The ChoreCard now handles localStorage updates internally
       setChores((prev) =>
         prev.map((chore) =>
           chore.id === choreId ? { ...chore, last_done: Date.now() / 1000 } : chore,
         ),
       );
-      // Trigger history refresh
       setHistoryRefresh((prev) => prev + 1);
     } catch (error) {
       console.error('Failed to complete chore:', error);
     }
   };
 
-  // Handler for completing one-time task
   const handleCompleteOneTimeTask = async (taskId: number) => {
     try {
       await fetch(`${process.env.NEXT_PUBLIC_API_URL}/one-time-tasks/${taskId}/complete`, {
         method: 'PATCH',
       });
 
-      // Update the task to show as completed instead of removing it
       setOneTimeTasks((prev) =>
         prev.map((task) =>
           task.id === taskId ? { ...task, completed_at: Math.floor(Date.now() / 1000) } : task,
         ),
       );
 
-      // Trigger history refresh
       setHistoryRefresh((prev) => prev + 1);
     } catch (error) {
       console.error('Failed to complete task:', error);
@@ -193,7 +176,16 @@ export default function Page() {
     );
   };
 
-  // Create carousel items
+  const getInitial = (name: string) => name.charAt(0).toUpperCase();
+
+  const getAvatarGradient = () => {
+    const name = selectedMember?.name || '';
+    if (name === 'Linas') return 'from-indigo-500 to-indigo-700';
+    if (name === 'Amelie') return 'from-pink-500 to-pink-700';
+    if (name === 'Katrin') return 'from-teal-500 to-teal-700';
+    return 'from-amber-500 to-amber-700';
+  };
+
   const allTasks = [
     ...plants.map((plant) => (
       <PlantCard
@@ -219,7 +211,7 @@ export default function Page() {
   ];
 
   return (
-    <div className="h-screen w-screen bg-linear-to-br from-gray-50 via-blue-50/30 to-gray-50">
+    <div className="h-screen w-screen overflow-hidden bg-slate-900">
       <div className="flex h-full flex-col">
         {!selectedMember ? (
           <div className="flex flex-1 items-center justify-center">
@@ -230,69 +222,65 @@ export default function Page() {
             />
           </div>
         ) : (
-          <div className="flex h-full flex-col gap-4 sm:gap-6">
+          <div className="flex h-full flex-col">
             {/* Header */}
-            <div className="border-b border-gray-200 bg-white/80 px-4 py-3 backdrop-blur-sm sm:px-6 sm:py-4">
+            <div className="border-b border-slate-700 bg-slate-800 px-4 py-4 sm:px-6">
               <div className="flex items-center justify-between gap-3">
                 {/* Left: User Info */}
-                <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
+                <div className="flex min-w-0 flex-1 items-center gap-3">
                   <button
                     onClick={() => setSelectedMember(null)}
-                    className="shrink-0 rounded-lg p-1.5 transition-all hover:bg-gray-100 active:scale-95 sm:p-2"
+                    className="shrink-0 rounded-lg border border-slate-700 bg-slate-900/50 p-2 text-slate-300 transition-all hover:border-indigo-500 hover:text-white"
                   >
                     <ArrowLeft
-                      className="h-4 w-4 text-gray-600 sm:h-5 sm:w-5"
+                      className="h-5 w-5"
                       strokeWidth={2}
                     />
                   </button>
-                  <div className="flex min-w-0 items-center gap-2 sm:gap-3">
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-blue-500 to-blue-600 text-lg text-white sm:h-11 sm:w-11 sm:text-xl">
-                      {selectedMember.name == 'Linas'
-                        ? '🧑'
-                        : selectedMember.name == 'Amelie'
-                          ? '👧'
-                          : selectedMember.name == 'Katrin'
-                            ? '👩'
-                            : '👨'}
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div
+                      className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-linear-to-br ${getAvatarGradient()} text-xl font-semibold text-white shadow-lg`}
+                    >
+                      {getInitial(selectedMember.name)}
                     </div>
                     <div className="min-w-0">
-                      <h1 className="truncate text-sm font-semibold text-gray-900 sm:text-lg lg:text-xl">
+                      <h1 className="truncate text-lg font-semibold text-slate-100">
                         {selectedMember.name}
                       </h1>
-                      <p className="hidden text-xs text-gray-500 sm:block">Aufgaben</p>
+                      <p className="text-sm text-slate-400">Deine Aufgaben</p>
                     </div>
                   </div>
                 </div>
 
-                {/* Center: Stats - Hidden on mobile */}
-                <div className="hidden items-center gap-4 lg:flex xl:gap-6">
+                {/* Center: Stats */}
+                <div className="hidden items-center gap-6 lg:flex">
                   <div className="flex items-center gap-2">
                     <Sprout
-                      className="h-4 w-4 text-amber-600"
+                      className="h-4 w-4 text-teal-400"
                       strokeWidth={2}
                     />
-                    <div className="text-lg font-bold text-amber-700">{plants.length}</div>
-                    <span className="text-xs text-gray-600">Pflanzen</span>
+                    <div className="text-lg font-bold text-teal-400">{plants.length}</div>
+                    <span className="text-sm text-slate-400">Pflanzen</span>
                   </div>
-                  <div className="h-6 w-px bg-gray-300" />
+                  <div className="h-6 w-px bg-slate-700" />
                   <div className="flex items-center gap-2">
                     <ListTodo
-                      className="h-4 w-4 text-blue-600"
+                      className="h-4 w-4 text-indigo-400"
                       strokeWidth={2}
                     />
-                    <div className="text-lg font-bold text-blue-700">
+                    <div className="text-lg font-bold text-indigo-400">
                       {chores.length + oneTimeTasks.length}
                     </div>
-                    <span className="text-xs text-gray-600">Aufgaben</span>
+                    <span className="text-sm text-slate-400">Aufgaben</span>
                   </div>
                 </div>
 
                 {/* Right: Action Buttons */}
-                <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+                <div className="flex shrink-0 items-center gap-2">
                   <Button
                     variant="outline"
                     size="sm"
-                    className="border-purple-200 bg-purple-50 p-2 text-purple-700 transition-all hover:border-purple-300 hover:bg-purple-100 sm:gap-2 sm:px-3"
+                    className="border-pink-500/30 bg-pink-500/10 p-2 text-pink-400 transition-all hover:border-pink-500 hover:bg-pink-500/20 sm:gap-2 sm:px-3"
                     onClick={() => setCreateTaskDialogOpen(true)}
                   >
                     <Plus
@@ -308,11 +296,11 @@ export default function Page() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="rounded-lg border-slate-200 bg-white p-2 text-slate-600 transition-all hover:border-slate-300 hover:bg-slate-50 sm:gap-2 sm:px-3"
+                    className="border-slate-700 bg-slate-900/50 p-2 text-slate-300 transition-all hover:border-slate-600 hover:bg-slate-800 sm:gap-2 sm:px-3"
                     onClick={() => setManageDialogOpen(true)}
                   >
                     <Settings
-                      className="h-4 w-4 text-slate-600"
+                      className="h-4 w-4"
                       strokeWidth={2}
                     />
                     <span className="hidden xl:inline">Verwalten</span>
@@ -322,7 +310,7 @@ export default function Page() {
             </div>
 
             {/* Carousel */}
-            <div className="relative flex-1">
+            <div className="relative flex-1 overflow-hidden">
               {allTasks.length > 0 ? <TaskCarousel items={allTasks} /> : <EmptyState />}
             </div>
           </div>
@@ -350,55 +338,34 @@ export default function Page() {
   );
 }
 
-function StatCard({
-  icon: Icon,
-  count,
-  label,
-  color,
-}: {
-  icon: LucideIcon;
-  count: number;
-  label: string;
-  color: 'amber' | 'blue';
-}) {
-  return (
-    <div className="flex flex-col items-end gap-0.5 sm:gap-1">
-      <div className="flex items-center gap-1.5 sm:gap-2">
-        <Icon
-          className={`h-4 w-4 sm:h-5 sm:w-5 text-${color}-600`}
-          strokeWidth={2}
-        />
-        <div className={`text-lg font-bold sm:text-xl lg:text-2xl text-${color}-700`}>{count}</div>
-      </div>
-      <div className="hidden text-right text-[10px] text-gray-600 sm:block sm:text-xs">{label}</div>
-    </div>
-  );
-}
-
 function EmptyState() {
   return (
-    <div className="flex h-full items-center justify-center">
-      <div className="mx-4 flex min-h-87.5 w-full max-w-130 flex-col items-center justify-center rounded-2xl border border-gray-200 bg-white p-6 shadow-xl select-none sm:min-h-100 sm:w-130 sm:rounded-3xl sm:p-8 lg:h-130 lg:rounded-[2rem] lg:p-10">
-        {/* Icon */}
-        <div className="mb-5 sm:mb-6 lg:mb-8">
-          <div className="flex h-20 w-20 items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50 sm:h-28 sm:w-28 sm:rounded-2xl lg:h-36 lg:w-36">
-            <Check
-              className="h-12 w-12 text-emerald-600 sm:h-16 sm:w-16 lg:h-20 lg:w-20"
+    <div className="flex h-full items-center justify-center p-4">
+      <div className="flex w-full max-w-md flex-col items-center justify-center rounded-2xl border border-slate-700 bg-slate-800 p-10">
+        <div className="mb-6">
+          <div className="flex h-24 w-24 items-center justify-center rounded-2xl border border-emerald-500/30 bg-emerald-500/10">
+            <svg
+              className="h-12 w-12 text-emerald-400"
+              fill="none"
+              stroke="currentColor"
               strokeWidth={2.5}
-            />
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M5 13l4 4L19 7"
+              />
+            </svg>
           </div>
         </div>
 
-        {/* Content */}
-        <div className="space-y-2 text-center sm:space-y-3">
-          <h2 className="text-2xl font-bold text-gray-900 sm:text-3xl lg:text-4xl">
-            Alle Aufgaben erledigt!
-          </h2>
-          <p className="text-lg text-gray-600 sm:text-xl lg:text-2xl">Gute Arbeit!</p>
+        <div className="space-y-2 text-center">
+          <h2 className="text-3xl font-bold text-slate-100">Alle Aufgaben erledigt!</h2>
+          <p className="text-xl text-slate-400">Gute Arbeit!</p>
         </div>
 
-        {/* Status Badge */}
-        <div className="mt-5 rounded-full border border-emerald-200 bg-emerald-50 px-4 py-1.5 text-xs font-semibold tracking-wide text-emerald-700 uppercase sm:mt-6 sm:px-5 sm:py-2 sm:text-sm lg:mt-8">
+        <div className="mt-6 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-5 py-2 text-sm font-semibold tracking-wide text-emerald-400 uppercase">
           Alles geschafft
         </div>
       </div>

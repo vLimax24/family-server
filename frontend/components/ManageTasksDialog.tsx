@@ -133,7 +133,7 @@ export function ManageTasksDialog({
           <div className="space-y-6 py-4">
             {/* Chores Section */}
             <div className="space-y-3">
-              <div className="flex items-center gap-2 text-sm font-semibold tracking-wide text-blue-700 uppercase">
+              <div className="flex items-center gap-2 text-sm font-semibold tracking-wide text-indigo-400 uppercase">
                 <ListTodo className="h-4 w-4" />
                 Aufgaben
               </div>
@@ -149,14 +149,16 @@ export function ManageTasksDialog({
                   {chores.map((chore) => (
                     <div
                       key={chore.id}
-                      className="flex items-center justify-between rounded-lg border border-blue-200 bg-blue-50/50 p-3 transition-colors hover:bg-blue-50"
+                      className="flex items-center justify-between rounded-lg border border-slate-700 bg-slate-900/50 p-3 transition-colors hover:bg-slate-800"
                     >
                       <div className="flex min-w-0 flex-1 items-center gap-3">
                         {chore.rotation_enabled === 1 && (
-                          <RotateCw className="h-4 w-4 shrink-0 text-blue-600" />
+                          <RotateCw className="h-4 w-4 shrink-0 text-indigo-400" />
                         )}
                         <div className="min-w-0 flex-1">
-                          <div className="truncate text-sm font-medium">{chore.name}</div>
+                          <div className="truncate text-sm font-medium text-slate-100">
+                            {chore.name}
+                          </div>
                           <div className="text-muted-foreground text-xs">
                             Alle {chore.interval} {chore.interval === 1 ? 'Tag' : 'Tage'}
                           </div>
@@ -167,7 +169,7 @@ export function ManageTasksDialog({
                           variant="ghost"
                           size="sm"
                           onClick={() => handleEdit('chore', chore)}
-                          className="h-8 w-8 p-0"
+                          className="h-8 w-8 p-0 text-slate-400 hover:text-slate-100"
                         >
                           <Pencil className="h-3.5 w-3.5" />
                         </Button>
@@ -175,7 +177,7 @@ export function ManageTasksDialog({
                           variant="ghost"
                           size="sm"
                           onClick={() => handleDeleteClick('chore', chore.id)}
-                          className="h-8 w-8 p-0 text-red-600 hover:bg-red-50 hover:text-red-700"
+                          className="h-8 w-8 p-0 text-pink-400 hover:bg-pink-500/10 hover:text-pink-300"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
@@ -188,7 +190,7 @@ export function ManageTasksDialog({
               {/* Create Chore Button */}
               <button
                 onClick={() => handleCreate('chore')}
-                className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-blue-300 bg-blue-100 p-3 text-sm font-medium text-blue-700 transition-all hover:border-blue-400 hover:bg-blue-200"
+                className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-indigo-500/30 bg-indigo-500/10 p-3 text-sm font-medium text-indigo-400 transition-all hover:border-indigo-500/50 hover:bg-indigo-500/20"
               >
                 <Plus className="h-4 w-4" />
                 Neue Aufgabe erstellen
@@ -197,7 +199,7 @@ export function ManageTasksDialog({
 
             {/* Plants Section */}
             <div className="space-y-3">
-              <div className="flex items-center gap-2 text-sm font-semibold tracking-wide text-emerald-700 uppercase">
+              <div className="flex items-center gap-2 text-sm font-semibold tracking-wide text-teal-400 uppercase">
                 <Droplet className="h-4 w-4" />
                 Pflanzen
               </div>
@@ -213,10 +215,12 @@ export function ManageTasksDialog({
                   {plants.map((plant) => (
                     <div
                       key={plant.id}
-                      className="flex items-center justify-between rounded-lg border border-emerald-200 bg-emerald-50/50 p-3 transition-colors hover:bg-emerald-50"
+                      className="flex items-center justify-between rounded-lg border border-slate-700 bg-slate-900/50 p-3 transition-colors hover:bg-slate-800"
                     >
                       <div className="min-w-0 flex-1">
-                        <div className="truncate text-sm font-medium">{plant.name}</div>
+                        <div className="truncate text-sm font-medium text-slate-100">
+                          {plant.name}
+                        </div>
                         <div className="text-muted-foreground text-xs">
                           Alle {plant.interval} {plant.interval === 1 ? 'Tag' : 'Tage'}
                         </div>
@@ -226,7 +230,7 @@ export function ManageTasksDialog({
                           variant="ghost"
                           size="sm"
                           onClick={() => handleEdit('plant', plant)}
-                          className="h-8 w-8 p-0"
+                          className="h-8 w-8 p-0 text-slate-400 hover:text-slate-100"
                         >
                           <Pencil className="h-3.5 w-3.5" />
                         </Button>
@@ -234,7 +238,7 @@ export function ManageTasksDialog({
                           variant="ghost"
                           size="sm"
                           onClick={() => handleDeleteClick('plant', plant.id)}
-                          className="h-8 w-8 p-0 text-red-600 hover:bg-red-50 hover:text-red-700"
+                          className="h-8 w-8 p-0 text-pink-400 hover:bg-pink-500/10 hover:text-pink-300"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
@@ -247,7 +251,7 @@ export function ManageTasksDialog({
               {/* Create Plant Button */}
               <button
                 onClick={() => handleCreate('plant')}
-                className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-emerald-300 bg-emerald-100 p-3 text-sm font-medium text-emerald-700 transition-all hover:border-emerald-400 hover:bg-emerald-200"
+                className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-teal-500/30 bg-teal-500/10 p-3 text-sm font-medium text-teal-400 transition-all hover:border-teal-500/50 hover:bg-teal-500/20"
               >
                 <Plus className="h-4 w-4" />
                 Neue Pflanze erstellen

@@ -1,4 +1,4 @@
-import { CheckCircle2, Circle, Clock, Check, Zap } from 'lucide-react';
+import { CheckCircle2, Clock, Zap } from 'lucide-react';
 
 export interface OneTimeTask {
   id: number;
@@ -61,32 +61,63 @@ export function OneTimeTaskCard({ task, onComplete }: OneTimeTaskCardProps) {
 
   const urgency = getUrgencyLevel();
 
+  const colorClasses = {
+    high: {
+      badge: 'border-pink-500/30 bg-pink-500/10 text-pink-400',
+      dot: 'bg-pink-500',
+      icon: 'border-pink-500/30 bg-pink-500/10 text-pink-400',
+      button: 'bg-pink-600 hover:bg-pink-700 shadow-pink-600/30',
+      overlay: 'bg-pink-500/60',
+    },
+    medium: {
+      badge: 'border-amber-500/30 bg-amber-500/10 text-amber-400',
+      dot: 'bg-amber-500',
+      icon: 'border-amber-500/30 bg-amber-500/10 text-amber-400',
+      button: 'bg-amber-600 hover:bg-amber-700 shadow-amber-600/30',
+      overlay: 'bg-amber-500/60',
+    },
+    low: {
+      badge: 'border-purple-500/30 bg-purple-500/10 text-purple-400',
+      dot: 'bg-purple-500',
+      icon: 'border-purple-500/30 bg-purple-500/10 text-purple-400',
+      button: 'bg-purple-600 hover:bg-purple-700 shadow-purple-600/30',
+      overlay: 'bg-purple-500/60',
+    },
+  };
+
+  const colors = colorClasses[urgency];
+
   return (
-    <div className="relative flex min-h-100 w-full flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white p-6 shadow-xl transition-all select-none hover:shadow-2xl sm:min-h-115 sm:rounded-3xl sm:p-8 lg:h-130 lg:rounded-[2rem] lg:p-10">
+    <div className="relative flex h-full w-full flex-col overflow-hidden rounded-2xl border border-slate-700 bg-slate-800 p-8 shadow-xl transition-all">
       {/* Header */}
-      <div className="relative z-10 mb-4 flex items-start justify-between sm:mb-5 lg:mb-6">
+      <div className="relative z-10 mb-5 flex items-start justify-between">
         <div
-          className={`rounded-full px-3 py-1.5 text-xs font-semibold tracking-wide uppercase sm:px-4 sm:py-2 sm:text-sm lg:px-5 lg:py-2 ${
-            urgency === 'high'
-              ? 'border border-red-200 bg-red-50 text-red-700'
-              : urgency === 'medium'
-                ? 'border border-amber-200 bg-amber-50 text-amber-700'
-                : 'border border-purple-200 bg-purple-50 text-purple-700'
-          }`}
+          className={`rounded-full border px-4 py-2 text-sm font-semibold uppercase ${colors.badge}`}
         >
           {getStatusText()}
         </div>
-        <div className={`h-2.5 w-2.5 rounded-full bg-purple-500 sm:h-3 sm:w-3`} />
+        <div className={`h-3 w-3 rounded-full ${colors.dot}`} />
       </div>
 
       {/* Completed Overlay */}
-      {isCompleted && task.completed_at != null && (
-        <div className="absolute inset-0 z-20 flex animate-[fadeIn_0.5s_ease-out] items-center justify-center rounded-2xl bg-purple-500/60 backdrop-blur-sm sm:rounded-3xl lg:rounded-[2rem]">
-          <div className="animate-[scaleIn_0.5s_ease-out] rounded-full bg-white p-6 shadow-2xl sm:p-7 lg:p-8">
-            <Check
-              className="h-16 w-16 text-purple-600 sm:h-20 sm:w-20 lg:h-24 lg:w-24"
+      {isCompleted && (
+        <div
+          className={`absolute inset-0 z-20 flex items-center justify-center rounded-2xl backdrop-blur-sm ${colors.overlay}`}
+        >
+          <div className="rounded-full bg-slate-800 p-8 shadow-2xl">
+            <svg
+              className="h-20 w-20 text-purple-400"
+              fill="none"
+              stroke="currentColor"
               strokeWidth={3}
-            />
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M5 13l4 4L19 7"
+              />
+            </svg>
           </div>
         </div>
       )}
@@ -94,28 +125,16 @@ export function OneTimeTaskCard({ task, onComplete }: OneTimeTaskCardProps) {
       {/* Icon */}
       <div className="relative z-10 flex flex-1 items-center justify-center">
         <div
-          className={`flex h-24 w-24 items-center justify-center rounded-xl sm:h-28 sm:w-28 sm:rounded-2xl lg:h-36 lg:w-36 ${
-            urgency === 'high'
-              ? 'border border-red-200 bg-red-50'
-              : urgency === 'medium'
-                ? 'border border-amber-200 bg-amber-50'
-                : 'border border-purple-200 bg-purple-50'
-          }`}
+          className={`flex h-32 w-32 items-center justify-center rounded-2xl border ${colors.icon}`}
         >
           {isCompleted ? (
             <CheckCircle2
-              className="h-14 w-14 text-purple-600 sm:h-16 sm:w-16 lg:h-20 lg:w-20"
+              className="h-16 w-16"
               strokeWidth={2}
             />
           ) : (
             <Zap
-              className={`h-14 w-14 sm:h-16 sm:w-16 lg:h-20 lg:w-20 ${
-                urgency === 'high'
-                  ? 'text-red-600'
-                  : urgency === 'medium'
-                    ? 'text-amber-600'
-                    : 'text-purple-600'
-              }`}
+              className="h-16 w-16"
               strokeWidth={2}
             />
           )}
@@ -123,38 +142,33 @@ export function OneTimeTaskCard({ task, onComplete }: OneTimeTaskCardProps) {
       </div>
 
       {/* Content */}
-      <div className="relative z-10 space-y-3 sm:space-y-3.5 lg:space-y-4">
+      <div className="relative z-10 space-y-4">
         <div>
-          <h3 className="mb-0.5 text-2xl font-bold text-gray-900 sm:mb-1 sm:text-3xl lg:text-4xl">
-            {task.name}
-          </h3>
+          <h3 className="mb-1 text-3xl font-bold text-slate-100">{task.name}</h3>
           {task.description && (
-            <p className="line-clamp-1 text-base text-gray-500 sm:text-lg lg:text-xl">
-              {task.description}
-            </p>
+            <p className="line-clamp-1 text-xl text-slate-400">{task.description}</p>
           )}
         </div>
 
-        <div className="flex items-center gap-2 text-gray-600">
+        <div className="flex items-center gap-2 text-slate-400">
           <Clock
-            className="h-4 w-4 sm:h-5 sm:w-5"
+            className="h-5 w-5"
             strokeWidth={2}
           />
-          <span className={`text-base sm:text-lg ${isOverdue ? 'font-semibold text-red-600' : ''}`}>
+          <span className={`text-base ${isOverdue ? 'font-semibold text-pink-400' : ''}`}>
             {formatDueDate()}
           </span>
         </div>
 
-        {/* Action Button */}
         <button
           onClick={(e) => {
             e.stopPropagation();
             onComplete(task.id);
           }}
-          className={`w-full rounded-xl px-6 py-4 text-xl font-semibold transition-all sm:px-7 sm:py-4 sm:text-xl lg:px-8 lg:py-5 lg:text-2xl ${
+          className={`w-full rounded-xl px-8 py-5 text-xl font-semibold text-white shadow-lg transition-all ${
             isCompleted
-              ? 'cursor-not-allowed border border-gray-200 bg-gray-100 text-gray-400'
-              : 'bg-purple-600 text-white shadow-lg shadow-purple-600/30 hover:bg-purple-700 active:scale-[0.98]'
+              ? 'cursor-not-allowed border border-slate-700 bg-slate-900/50 text-slate-500'
+              : `${colors.button} active:scale-[0.98]`
           }`}
           disabled={isCompleted}
         >

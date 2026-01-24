@@ -1,4 +1,4 @@
-import { Droplet, Calendar, Check } from 'lucide-react';
+import { Droplet, Calendar } from 'lucide-react';
 import { Plant } from '@/lib/types';
 
 interface PlantCardProps {
@@ -16,49 +16,75 @@ export function PlantCard({ plant, onWater }: PlantCardProps) {
       : null;
 
   const getStatusColor = () => {
-    if (daysSinceWatered === null) return 'emerald';
-    if (daysSinceWatered > 5) return 'red';
+    if (daysSinceWatered === null) return 'teal';
+    if (daysSinceWatered > 5) return 'pink';
     if (daysSinceWatered > 2) return 'amber';
-    return 'emerald';
+    return 'teal';
   };
 
   const statusColor = getStatusColor();
   const isCompleted = daysSinceWatered === 0;
 
+  const colorClasses = {
+    teal: {
+      badge: 'border-teal-500/30 bg-teal-500/10 text-teal-400',
+      dot: 'bg-teal-500',
+      icon: 'border-teal-500/30 bg-teal-500/10 text-teal-400',
+      button: 'bg-teal-600 hover:bg-teal-700 shadow-teal-600/30',
+      overlay: 'bg-teal-500/60',
+      check: 'text-teal-400',
+    },
+    amber: {
+      badge: 'border-amber-500/30 bg-amber-500/10 text-amber-400',
+      dot: 'bg-amber-500',
+      icon: 'border-amber-500/30 bg-amber-500/10 text-amber-400',
+      button: 'bg-amber-600 hover:bg-amber-700 shadow-amber-600/30',
+      overlay: 'bg-amber-500/60',
+      check: 'text-amber-400',
+    },
+    pink: {
+      badge: 'border-pink-500/30 bg-pink-500/10 text-pink-400',
+      dot: 'bg-pink-500',
+      icon: 'border-pink-500/30 bg-pink-500/10 text-pink-400',
+      button: 'bg-pink-600 hover:bg-pink-700 shadow-pink-600/30',
+      overlay: 'bg-pink-500/60',
+      check: 'text-pink-400',
+    },
+  };
+
+  const colors = colorClasses[statusColor];
+
   return (
-    <div className="relative flex h-100 w-full flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white p-6 shadow-xl transition-all select-none hover:shadow-2xl sm:h-155 sm:rounded-3xl sm:p-8 lg:h-130 lg:rounded-[2rem] lg:p-10">
-      {/* Header with Status Badge */}
-      <div className="relative z-10 mb-4 flex items-start justify-between sm:mb-5 lg:mb-6">
+    <div className="relative flex h-full w-full flex-col overflow-hidden rounded-2xl border border-slate-700 bg-slate-800 p-8 shadow-xl transition-all">
+      {/* Header */}
+      <div className="relative z-10 mb-5 flex items-start justify-between">
         <div
-          className={`rounded-full px-3 py-1.5 text-xs font-semibold tracking-wide uppercase sm:px-4 sm:py-2 sm:text-sm lg:px-5 lg:py-2 ${
-            statusColor === 'red'
-              ? 'border border-red-200 bg-red-50 text-red-700'
-              : statusColor === 'amber'
-                ? 'border border-amber-200 bg-amber-50 text-amber-700'
-                : 'border border-emerald-200 bg-emerald-50 text-emerald-700'
-          }`}
+          className={`rounded-full border px-4 py-2 text-sm font-semibold uppercase ${colors.badge}`}
         >
           {isCompleted ? 'Gegossen' : 'Braucht Wasser'}
         </div>
-        <div
-          className={`h-2.5 w-2.5 rounded-full sm:h-3 sm:w-3 ${
-            statusColor === 'red'
-              ? 'bg-red-500'
-              : statusColor === 'amber'
-                ? 'bg-amber-500'
-                : 'bg-emerald-500'
-          }`}
-        />
+        <div className={`h-3 w-3 rounded-full ${colors.dot}`} />
       </div>
 
       {/* Completed Overlay */}
-      {isCompleted && plant.last_pour != null && (
-        <div className="absolute inset-0 z-20 flex animate-[fadeIn_0.5s_ease-out] items-center justify-center rounded-2xl bg-emerald-500/60 backdrop-blur-sm sm:rounded-3xl lg:rounded-[2rem]">
-          <div className="animate-[scaleIn_0.5s_ease-out] rounded-full bg-white p-6 shadow-2xl sm:p-7 lg:p-8">
-            <Check
-              className="h-16 w-16 text-emerald-600 sm:h-20 sm:w-20 lg:h-24 lg:w-24"
+      {isCompleted && (
+        <div
+          className={`absolute inset-0 z-20 flex items-center justify-center rounded-2xl backdrop-blur-sm ${colors.overlay}`}
+        >
+          <div className="rounded-full bg-slate-800 p-8 shadow-2xl">
+            <svg
+              className={`h-20 w-20 ${colors.check}`}
+              fill="none"
+              stroke="currentColor"
               strokeWidth={3}
-            />
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M5 13l4 4L19 7"
+              />
+            </svg>
           </div>
         </div>
       )}
@@ -66,42 +92,28 @@ export function PlantCard({ plant, onWater }: PlantCardProps) {
       {/* Icon */}
       <div className="relative z-10 flex flex-1 items-center justify-center">
         <div
-          className={`flex h-24 w-24 items-center justify-center rounded-xl sm:h-28 sm:w-28 sm:rounded-2xl lg:h-36 lg:w-36 ${
-            statusColor === 'red'
-              ? 'border border-red-200 bg-red-50'
-              : statusColor === 'amber'
-                ? 'border border-amber-200 bg-amber-50'
-                : 'border border-emerald-200 bg-emerald-50'
-          }`}
+          className={`flex h-32 w-32 items-center justify-center rounded-2xl border ${colors.icon}`}
         >
           <Droplet
-            className={`h-14 w-14 sm:h-16 sm:w-16 lg:h-20 lg:w-20 ${
-              statusColor === 'red'
-                ? 'text-red-600'
-                : statusColor === 'amber'
-                  ? 'text-amber-600'
-                  : 'text-emerald-600'
-            }`}
+            className="h-16 w-16"
             strokeWidth={2}
           />
         </div>
       </div>
 
       {/* Content */}
-      <div className="relative z-10 space-y-3 sm:space-y-3.5 lg:space-y-4">
+      <div className="relative z-10 space-y-4">
         <div>
-          <h3 className="mb-0.5 text-2xl font-bold text-gray-900 sm:mb-1 sm:text-3xl lg:text-4xl">
-            {plant.name}
-          </h3>
-          <p className="text-lg text-gray-500 sm:text-xl lg:text-2xl">Wohnung</p>
+          <h3 className="mb-1 text-3xl font-bold text-slate-100">{plant.name}</h3>
+          <p className="text-xl text-slate-400">Wohnung</p>
         </div>
 
-        <div className="flex items-center gap-2 text-gray-600">
+        <div className="flex items-center gap-2 text-slate-400">
           <Calendar
-            className="h-4 w-4 sm:h-5 sm:w-5"
+            className="h-5 w-5"
             strokeWidth={2}
           />
-          <span className="text-base sm:text-lg">
+          <span className="text-base">
             {daysSinceWatered === null
               ? 'Noch nie gegossen'
               : daysSinceWatered === 0
@@ -110,25 +122,20 @@ export function PlantCard({ plant, onWater }: PlantCardProps) {
           </span>
         </div>
 
-        {/* Action Button */}
         <button
           onClick={(e) => {
             e.stopPropagation();
             onWater(plant.id);
           }}
-          className={`flex w-full items-center justify-center gap-2.5 rounded-xl px-6 py-4 text-xl font-semibold transition-all sm:gap-3 sm:px-7 sm:py-4 sm:text-xl lg:px-8 lg:py-5 lg:text-2xl ${
+          className={`flex w-full items-center justify-center gap-3 rounded-xl px-8 py-5 text-xl font-semibold text-white shadow-lg transition-all ${
             isCompleted
-              ? 'cursor-not-allowed border border-gray-200 bg-gray-100 text-gray-400'
-              : statusColor === 'red'
-                ? 'bg-red-600 text-white shadow-lg shadow-red-600/30 hover:bg-red-700 active:scale-[0.98]'
-                : statusColor === 'amber'
-                  ? 'bg-amber-600 text-white shadow-lg shadow-amber-600/30 hover:bg-amber-700 active:scale-[0.98]'
-                  : 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30 hover:bg-emerald-700 active:scale-[0.98]'
+              ? 'cursor-not-allowed border border-slate-700 bg-slate-900/50 text-slate-500'
+              : `${colors.button} active:scale-[0.98]`
           }`}
           disabled={isCompleted}
         >
           <Droplet
-            className="h-5 w-5 sm:h-6 sm:w-6"
+            className="h-6 w-6"
             strokeWidth={2.5}
           />
           {isCompleted ? 'Heute gegossen' : 'Pflanze gießen'}
