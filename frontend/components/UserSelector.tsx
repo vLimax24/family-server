@@ -113,7 +113,7 @@ export function UserSelector({
     <div className="min-h-screen w-full bg-slate-900 p-5 sm:p-8 lg:p-10">
       <div className="mx-auto w-full max-w-7xl space-y-10">
         {/* Header */}
-        <div className="text-center">
+        <div className="text-left md:text-center">
           <h1
             className="pt-3 pb-1 text-4xl font-semibold text-white sm:text-5xl"
             suppressHydrationWarning
