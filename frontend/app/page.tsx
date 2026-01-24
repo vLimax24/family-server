@@ -33,26 +33,51 @@ export default function Page() {
 
   // Handle push notifications
   useEffect(() => {
-    if (selectedMember) {
-      const notificationsSupported =
-        'Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window;
+    if (!selectedMember) return;
 
-      if (!notificationsSupported) {
-        console.log('Push notifications not supported on this device/browser');
-        return;
-      }
+    const notificationsSupported =
+      'Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window;
 
+    if (!notificationsSupported) {
+      console.log('Push notifications not supported on this device/browser');
+      return;
+    }
+
+    let timeoutId: NodeJS.Timeout;
+
+    const setupNotifications = async () => {
       if (Notification.permission === 'default') {
-        setTimeout(async () => {
-          const granted = await pushService.requestPermission();
-          if (granted) {
-            await pushService.subscribeToPush(selectedMember.id);
+        // Wait 2 seconds before asking (don't overwhelm user immediately)
+        timeoutId = setTimeout(async () => {
+          try {
+            const granted = await pushService.requestPermission();
+            if (granted) {
+              await pushService.subscribeToPush(selectedMember.id);
+              console.log('✓ Push notifications enabled');
+            }
+          } catch (error) {
+            console.error('Failed to enable notifications:', error);
           }
         }, 2000);
       } else if (Notification.permission === 'granted') {
-        pushService.subscribeToPush(selectedMember.id);
+        // Already granted, subscribe immediately
+        try {
+          await pushService.subscribeToPush(selectedMember.id);
+          console.log('✓ Push subscription refreshed');
+        } catch (error) {
+          console.error('Failed to subscribe to push:', error);
+        }
       }
-    }
+    };
+
+    setupNotifications();
+
+    // Cleanup: cancel timeout if component unmounts or selectedMember changes
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
   }, [selectedMember]);
 
   const handleTasksUpdated = () => {
