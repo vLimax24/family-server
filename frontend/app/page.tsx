@@ -24,9 +24,8 @@ export default function Page() {
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
   const [manageDialogOpen, setManageDialogOpen] = useState<boolean>(false);
   const [createTaskDialogOpen, setCreateTaskDialogOpen] = useState<boolean>(false);
-  const [historyRefresh, setHistoryRefresh] = useState(0); // Trigger history refresh
+  const [historyRefresh, setHistoryRefresh] = useState(0);
 
-  // Load family members on mount
   useEffect(() => {
     apiService.getFamilyMembers().then(setFamilyMembers).catch(console.error);
   }, []);
