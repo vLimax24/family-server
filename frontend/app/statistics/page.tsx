@@ -1,9 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { ArrowLeft, Users, User, TrendingUp, Flame, Target, Calendar } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   ChartConfig,
   ChartContainer,
@@ -21,9 +20,13 @@ import {
   Cell,
   Line,
   LineChart,
+  Label,
+  Tooltip,
+  ResponsiveContainer,
 } from 'recharts';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface TotalTasksData {
   name: string;
@@ -74,6 +77,7 @@ export default function StatisticsPage() {
   const [streakData, setStreakData] = useState<StreakData | null>(null);
   const [completionRate, setCompletionRate] = useState<CompletionRateData | null>(null);
   const [personalWeeklyTrend, setPersonalWeeklyTrend] = useState<WeeklyTrendData[]>([]);
+  const [personalLoading, setPersonalLoading] = useState(false);
 
   useEffect(() => {
     loadFamilyStatistics();
@@ -103,21 +107,18 @@ export default function StatisticsPage() {
     try {
       setLoading(true);
 
-      // Fetch total tasks per person
       const totalResponse = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/statistics/completions`,
       );
       const totalData = await totalResponse.json();
       setTotalTasksData(totalData);
 
-      // Fetch tasks by type
       const typeResponse = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/statistics/tasks-by-type`,
       );
       const typeData = await typeResponse.json();
       setTasksByTypeData(typeData);
 
-      // Fetch weekly trend (family)
       const trendResponse = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/statistics/weekly-trend`,
       );
@@ -132,21 +133,20 @@ export default function StatisticsPage() {
 
   const loadPersonalStatistics = async (personId: number) => {
     try {
-      // Fetch streak data
+      setPersonalLoading(true);
+
       const streakResponse = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/statistics/personal-streak/${personId}`,
       );
       const streakData = await streakResponse.json();
       setStreakData(streakData);
 
-      // Fetch completion rate
       const rateResponse = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/statistics/completion-rate/${personId}`,
       );
       const rateData = await rateResponse.json();
       setCompletionRate(rateData);
 
-      // Fetch personal weekly trend
       const trendResponse = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/statistics/weekly-trend?person_id=${personId}`,
       );
@@ -154,31 +154,30 @@ export default function StatisticsPage() {
       setPersonalWeeklyTrend(trendData);
     } catch (error) {
       console.error('Failed to load personal statistics:', error);
+    } finally {
+      setPersonalLoading(false);
     }
   };
 
-  // Find the person with the most tasks
   const maxTasks = Math.max(...totalTasksData.map((d) => d.total_tasks));
 
   const chartConfig = {
     total_tasks: {
       label: 'Aufgaben',
-      color: '#3b82f6',
+      color: '#6366f1',
     },
     task_count: {
       label: 'Aufgaben',
-      color: '#3b82f6',
+      color: '#6366f1',
     },
   } satisfies ChartConfig;
 
-  // Colors for pie chart
   const COLORS = {
-    chore: '#3b82f6', // blue
-    plant: '#10b981', // green
-    one_time: '#a855f7', // purple
+    chore: '#6366f1',
+    plant: '#14b8a6',
+    one_time: '#ec4899',
   };
 
-  // Transform data for pie chart with German labels
   const pieChartData = tasksByTypeData.map((item) => ({
     name:
       item.task_type === 'chore'
@@ -191,104 +190,117 @@ export default function StatisticsPage() {
     fill: COLORS[item.task_type as keyof typeof COLORS],
   }));
 
+  const totalTasks = useMemo(() => {
+    return pieChartData.reduce((acc, curr) => acc + curr.value, 0);
+  }, [pieChartData]);
+
+  const getInitial = (name: string) => name.charAt(0).toUpperCase();
+
+  const getAvatarGradient = (index: number) => {
+    const gradients = [
+      'from-indigo-500 to-indigo-700',
+      'from-pink-500 to-pink-700',
+      'from-teal-500 to-teal-700',
+      'from-amber-500 to-amber-700',
+    ];
+    return gradients[index % gradients.length];
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-gray-50">
-      {/* Header */}
-      <div className="border-b bg-white/80 backdrop-blur-sm">
-        <div className="container mx-auto px-3 py-3 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-2 sm:gap-4">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => router.push('/')}
-              className="h-9 w-9 shrink-0 rounded-lg hover:cursor-pointer sm:h-10 sm:w-10"
-            >
-              <ArrowLeft className="h-4 w-4 sm:h-5 sm:w-5" />
-            </Button>
-            <div className="min-w-0 flex-1">
-              <h1 className="truncate text-xl font-bold text-gray-900 sm:text-2xl lg:text-3xl">
-                Statistiken
-              </h1>
-              <p className="hidden text-sm text-gray-600 sm:block">
-                Übersicht über erledigte Aufgaben
-              </p>
-            </div>
+    <div className="min-h-screen w-full overflow-y-auto bg-slate-900 pt-5 pb-10 sm:py-8 lg:py-10">
+      <div className="mx-auto w-full max-w-7xl space-y-10 px-5 sm:px-8 lg:px-10">
+        {/* Header */}
+        <div className="flex items-center gap-4">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => router.push('/')}
+            className="h-10 w-10 shrink-0 rounded-lg border bg-slate-800 text-slate-300 hover:cursor-pointer hover:border-indigo-500 hover:bg-slate-800 hover:text-white"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div className="flex-1">
+            <h1 className="text-3xl font-semibold text-white sm:text-4xl">Statistiken</h1>
           </div>
         </div>
-      </div>
 
-      {/* Main Content */}
-      <div className="container mx-auto px-3 py-4 sm:px-6 sm:py-6 lg:px-8">
+        {/* Tabs */}
         <Tabs
           defaultValue="family"
-          className="space-y-4 sm:space-y-6"
+          className="space-y-6"
         >
           {/* Tab Selector */}
-          <TabsList className="grid h-auto w-full max-w-md grid-cols-2 p-1">
+          <TabsList className="grid h-auto w-full max-w-md grid-cols-2 gap-2 bg-slate-800 p-1">
             <TabsTrigger
               value="family"
-              className="gap-1.5 text-xs sm:gap-2 sm:text-sm"
+              className="gap-2 data-[state=active]:bg-indigo-600 data-[state=active]:text-white"
             >
-              <Users className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-              <span>Familie</span>
+              <Users className="h-4 w-4 text-white" />
+              <span className="text-white">Familie</span>
             </TabsTrigger>
             <TabsTrigger
               value="personal"
-              className="gap-1.5 text-xs sm:gap-2 sm:text-sm"
+              className="gap-2 data-[state=active]:bg-indigo-600 data-[state=active]:text-white"
             >
-              <User className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-              <span>Persönlich</span>
+              <User className="h-4 w-4 text-white" />
+              <span className="text-white">Persönlich</span>
             </TabsTrigger>
           </TabsList>
 
           {/* Family Statistics */}
           <TabsContent
             value="family"
-            className="space-y-4 sm:space-y-6"
+            className="space-y-6"
           >
             {/* Total Tasks Chart */}
-            <Card>
-              <CardHeader className="px-4 py-4 sm:px-6 sm:py-6">
-                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                  <TrendingUp className="h-4 w-4 shrink-0 text-blue-600 sm:h-5 sm:w-5" />
-                  <span className="line-clamp-2">Erledigte Aufgaben pro Person</span>
-                </CardTitle>
-                <CardDescription className="text-xs sm:text-sm">
+            <div className="overflow-hidden rounded-2xl border border-slate-700 bg-slate-800">
+              <div className="border-b border-slate-700 p-6">
+                <div className="mb-2 flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5 text-indigo-400" />
+                  <h3 className="text-lg font-semibold text-slate-100">
+                    Erledigte Aufgaben pro Person
+                  </h3>
+                </div>
+                <p className="text-sm text-slate-400">
                   Gesamtanzahl aller erledigten Aufgaben (Pflanzen, Aufgaben, Einmalige)
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="px-2 sm:px-6">
+                </p>
+              </div>
+              <div className="p-6">
                 {loading ? (
-                  <div className="flex h-64 items-center justify-center sm:h-80">
-                    <p className="text-muted-foreground text-sm">Laden...</p>
+                  <div className="flex h-80 items-center justify-center">
+                    <Skeleton className="h-full w-full bg-slate-700" />
                   </div>
                 ) : totalTasksData.length === 0 ? (
-                  <div className="flex h-64 items-center justify-center sm:h-80">
-                    <p className="text-muted-foreground text-center text-sm">
-                      Noch keine Daten vorhanden
-                    </p>
+                  <div className="flex h-80 items-center justify-center">
+                    <p className="text-slate-500">Noch keine Daten vorhanden</p>
                   </div>
                 ) : (
                   <ChartContainer
                     config={chartConfig}
-                    className="h-64 w-full sm:h-80"
+                    className="h-80 w-full"
                   >
                     <BarChart data={totalTasksData}>
-                      <CartesianGrid strokeDasharray="3 3" />
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        stroke="#334155"
+                      />
                       <XAxis
                         dataKey="name"
                         tickLine={false}
                         tickMargin={10}
                         axisLine={false}
-                        tick={{ fontSize: 12 }}
+                        tick={{ fontSize: 12, fill: '#94a3b8' }}
                       />
                       <YAxis
                         tickLine={false}
                         tickMargin={10}
                         axisLine={false}
-                        tick={{ fontSize: 12 }}
+                        tick={{ fontSize: 12, fill: '#94a3b8' }}
                       />
-                      <ChartTooltip content={<ChartTooltipContent />} />
+                      <ChartTooltip
+                        content={<ChartTooltipContent />}
+                        cursor={false}
+                      />
                       <Bar
                         dataKey="total_tasks"
                         radius={[8, 8, 0, 0]}
@@ -297,55 +309,60 @@ export default function StatisticsPage() {
                           <Cell
                             key={`cell-${index}`}
                             fill={chartConfig.total_tasks.color}
-                            fillOpacity={entry.total_tasks === maxTasks ? 1 : 0.4}
+                            fillOpacity={entry.total_tasks === maxTasks ? 1 : 0.5}
                           />
                         ))}
                       </Bar>
                     </BarChart>
                   </ChartContainer>
                 )}
-              </CardContent>
-            </Card>
+              </div>
+            </div>
 
-            <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
-              {/* Task Type Distribution - Pie Chart */}
-              <Card>
-                <CardHeader className="px-4 py-4 sm:px-6 sm:py-6">
-                  <CardTitle className="text-base sm:text-lg">Aufgabenverteilung</CardTitle>
-                  <CardDescription className="text-xs sm:text-sm">
-                    Anteil der verschiedenen Aufgabentypen
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="px-2 sm:px-6">
+            <div className="grid gap-6 lg:grid-cols-2">
+              {/* Task Type Distribution - Donut Chart */}
+              <div className="overflow-hidden rounded-2xl border border-slate-700 bg-slate-800">
+                <div className="border-b border-slate-700 p-6">
+                  <h3 className="mb-2 text-lg font-semibold text-slate-100">Aufgabenverteilung</h3>
+                  <p className="text-sm text-slate-400">Anteil der verschiedenen Aufgabentypen</p>
+                </div>
+                <div className="p-6">
                   {loading ? (
-                    <div className="flex h-64 items-center justify-center sm:h-80">
-                      <p className="text-muted-foreground text-sm">Laden...</p>
+                    <div className="flex h-80 items-center justify-center">
+                      <Skeleton className="h-full w-full bg-slate-700" />
                     </div>
                   ) : tasksByTypeData.length === 0 ? (
-                    <div className="flex h-64 items-center justify-center sm:h-80">
-                      <p className="text-muted-foreground text-center text-sm">
-                        Noch keine Daten vorhanden
-                      </p>
+                    <div className="flex h-80 items-center justify-center">
+                      <p className="text-slate-500">Noch keine Daten vorhanden</p>
                     </div>
                   ) : (
-                    <div className="flex h-auto min-h-64 flex-col items-center justify-center gap-4 sm:h-80 sm:flex-row sm:justify-between sm:gap-8">
-                      {/* Pie Chart */}
-                      <div className="flex w-full shrink-0 items-center justify-center sm:w-auto sm:flex-1">
+                    <div className="flex flex-col items-center gap-6">
+                      <div className="mx-auto">
                         <PieChart
-                          width={Math.min(
-                            280,
-                            typeof window !== 'undefined' ? window.innerWidth - 80 : 280,
-                          )}
+                          width={280}
                           height={280}
                         >
+                          <Tooltip
+                            contentStyle={{
+                              backgroundColor: '#1e293b',
+                              border: '1px solid #334155',
+                              borderRadius: '8px',
+                            }}
+                            itemStyle={{
+                              color: '#f1f5f9',
+                            }}
+                            labelStyle={{
+                              color: '#f1f5f9',
+                            }}
+                          />
                           <Pie
                             data={pieChartData}
-                            cx="50%"
-                            cy="50%"
-                            labelLine={false}
-                            label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
-                            outerRadius={90}
                             dataKey="value"
+                            nameKey="name"
+                            innerRadius={60}
+                            outerRadius={100}
+                            strokeWidth={5}
+                            stroke="#1e293b"
                           >
                             {pieChartData.map((entry, index) => (
                               <Cell
@@ -353,261 +370,301 @@ export default function StatisticsPage() {
                                 fill={entry.fill}
                               />
                             ))}
+                            <Label
+                              content={({ viewBox }) => {
+                                if (viewBox && 'cx' in viewBox && 'cy' in viewBox) {
+                                  return (
+                                    <text
+                                      x={viewBox.cx}
+                                      y={viewBox.cy}
+                                      textAnchor="middle"
+                                      dominantBaseline="middle"
+                                    >
+                                      <tspan
+                                        x={viewBox.cx}
+                                        y={viewBox.cy}
+                                        className="fill-slate-100 text-4xl font-bold"
+                                      >
+                                        {totalTasks.toLocaleString()}
+                                      </tspan>
+                                      <tspan
+                                        x={viewBox.cx}
+                                        y={(viewBox.cy || 0) + 28}
+                                        className="fill-slate-400 text-sm"
+                                      >
+                                        Gesamt
+                                      </tspan>
+                                    </text>
+                                  );
+                                }
+                              }}
+                            />
                           </Pie>
                         </PieChart>
                       </div>
 
-                      {/* Stats Panel */}
-                      <div className="flex w-full flex-col gap-3 sm:w-auto sm:gap-4 sm:pr-4">
+                      <div className="w-full space-y-3">
                         {pieChartData.map((item) => (
                           <div
                             key={item.type}
-                            className="bg-muted/30 flex items-center gap-3 rounded-lg border p-3 sm:gap-4 sm:p-4"
+                            className="flex items-center gap-3 rounded-lg border border-slate-700 bg-slate-900/50 p-3"
                           >
                             <div
-                              className="h-3 w-3 shrink-0 rounded-full sm:h-4 sm:w-4"
+                              className="h-3 w-3 shrink-0 rounded-full"
                               style={{ backgroundColor: item.fill }}
                             />
-                            <div className="min-w-0 flex-1">
-                              <p className="truncate text-xs font-medium sm:text-sm">{item.name}</p>
+                            <div className="flex-1">
+                              <p className="text-sm font-medium text-slate-200">{item.name}</p>
                             </div>
-                            <div className="shrink-0 text-right">
-                              <p className="text-xl font-bold sm:text-2xl">{item.value}</p>
-                              <p className="text-muted-foreground text-[10px] sm:text-xs">
-                                Aufgaben
-                              </p>
+                            <div className="text-right">
+                              <p className="text-xl font-bold text-slate-100">{item.value}</p>
                             </div>
                           </div>
                         ))}
                       </div>
                     </div>
                   )}
-                </CardContent>
-              </Card>
+                </div>
+              </div>
 
-              {/* Weekly Trend - Line Chart */}
-              <Card>
-                <CardHeader className="px-4 py-4 sm:px-6 sm:py-6">
-                  <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                    <Calendar className="h-4 w-4 shrink-0 text-blue-600 sm:h-5 sm:w-5" />
-                    Wöchentlicher Verlauf
-                  </CardTitle>
-                  <CardDescription className="text-xs sm:text-sm">
-                    Aufgaben der letzten 12 Wochen
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="px-2 sm:px-6">
+              {/* Weekly Trend */}
+              <div className="overflow-hidden rounded-2xl border border-slate-700 bg-slate-800">
+                <div className="border-b border-slate-700 p-6">
+                  <div className="mb-2 flex items-center gap-2">
+                    <Calendar className="h-5 w-5 text-indigo-400" />
+                    <h3 className="text-lg font-semibold text-slate-100">Wöchentlicher Verlauf</h3>
+                  </div>
+                  <p className="text-sm text-slate-400">Aufgaben der letzten 12 Wochen</p>
+                </div>
+                <div className="p-6">
                   {loading ? (
-                    <div className="flex h-64 items-center justify-center sm:h-80">
-                      <p className="text-muted-foreground text-sm">Laden...</p>
+                    <div className="flex h-80 items-center justify-center">
+                      <Skeleton className="h-full w-full bg-slate-700" />
                     </div>
                   ) : weeklyTrendData.length === 0 ? (
-                    <div className="flex h-64 items-center justify-center sm:h-80">
-                      <p className="text-muted-foreground text-center text-sm">
-                        Noch keine Daten vorhanden
-                      </p>
+                    <div className="flex h-80 items-center justify-center">
+                      <p className="text-slate-500">Noch keine Daten vorhanden</p>
                     </div>
                   ) : (
                     <ChartContainer
                       config={chartConfig}
-                      className="h-64 w-full sm:h-80"
+                      className="h-80 w-full"
                     >
                       <LineChart data={weeklyTrendData}>
-                        <CartesianGrid strokeDasharray="3 3" />
+                        <CartesianGrid
+                          strokeDasharray="3 3"
+                          stroke="#334155"
+                        />
                         <XAxis
                           dataKey="week"
                           tickLine={false}
                           tickMargin={10}
                           axisLine={false}
-                          tick={{ fontSize: 12 }}
+                          tick={{ fontSize: 12, fill: '#94a3b8' }}
                         />
                         <YAxis
                           tickLine={false}
                           tickMargin={10}
                           axisLine={false}
-                          tick={{ fontSize: 12 }}
+                          tick={{ fontSize: 12, fill: '#94a3b8' }}
                         />
                         <ChartTooltip content={<ChartTooltipContent />} />
                         <Line
                           type="monotone"
                           dataKey="task_count"
                           stroke={chartConfig.task_count.color}
-                          strokeWidth={2}
-                          dot={{ r: 4 }}
+                          strokeWidth={3}
+                          dot={{ r: 5, fill: '#6366f1' }}
                         />
                       </LineChart>
                     </ChartContainer>
                   )}
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             </div>
           </TabsContent>
 
           {/* Personal Statistics */}
           <TabsContent
             value="personal"
-            className="space-y-4 sm:space-y-6"
+            className="space-y-6"
           >
             {/* Person Selector */}
-            <Card>
-              <CardHeader className="px-4 py-4 sm:px-6 sm:py-6">
-                <CardTitle className="text-base sm:text-lg">Person auswählen</CardTitle>
-              </CardHeader>
-              <CardContent className="px-4 sm:px-6">
-                <select
-                  value={selectedPersonId || ''}
-                  onChange={(e) => setSelectedPersonId(Number(e.target.value))}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                >
-                  {persons.map((person) => (
-                    <option
-                      key={person.id}
-                      value={person.id}
+            <div className="overflow-hidden rounded-2xl border border-slate-700 bg-slate-800 p-6">
+              <h3 className="mb-4 text-lg font-semibold text-slate-100">Person auswählen</h3>
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                {persons.map((person, index) => (
+                  <button
+                    key={person.id}
+                    onClick={() => setSelectedPersonId(person.id)}
+                    className={`group flex flex-col items-center gap-3 rounded-xl border p-4 transition-all ${
+                      selectedPersonId === person.id
+                        ? 'border-indigo-500 bg-indigo-500/10'
+                        : 'border-slate-700 bg-slate-900/50 hover:border-indigo-400'
+                    }`}
+                  >
+                    <div
+                      className={`flex h-12 w-12 items-center justify-center rounded-full bg-linear-to-br ${getAvatarGradient(index)} text-lg font-semibold text-white shadow-lg`}
                     >
-                      {person.name}
-                    </option>
-                  ))}
-                </select>
-              </CardContent>
-            </Card>
+                      {getInitial(person.name)}
+                    </div>
+                    <span className="text-sm font-medium text-slate-200">{person.name}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
 
             {selectedPersonId && (
               <>
                 {/* Streak Cards */}
-                <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
-                  {/* Current Streak */}
-                  <Card>
-                    <CardHeader className="px-4 py-4 sm:px-6 sm:py-6">
-                      <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                        <Flame className="h-4 w-4 shrink-0 text-orange-500 sm:h-5 sm:w-5" />
-                        Aktuelle Serie
-                      </CardTitle>
-                      <CardDescription className="text-xs sm:text-sm">
+                <div className="grid gap-6 lg:grid-cols-2">
+                  <div className="overflow-hidden rounded-2xl border border-slate-700 bg-slate-800">
+                    <div className="border-b border-slate-700 p-6">
+                      <div className="mb-2 flex items-center gap-2">
+                        <Flame className="h-5 w-5 text-orange-500" />
+                        <h3 className="text-lg font-semibold text-slate-100">Aktuelle Serie</h3>
+                      </div>
+                      <p className="text-sm text-slate-400">
                         Tage in Folge mit erledigten Aufgaben
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="px-4 sm:px-6">
-                      <div className="text-center">
-                        <div className="mb-2 text-6xl font-bold text-orange-500">
-                          {streakData?.current_streak || 0}
+                      </p>
+                    </div>
+                    <div className="p-6">
+                      {personalLoading ? (
+                        <Skeleton className="mx-auto h-20 w-32 bg-slate-700" />
+                      ) : (
+                        <div className="text-center">
+                          <div className="mb-2 text-6xl font-bold text-orange-500">
+                            {streakData?.current_streak || 0}
+                          </div>
+                          <p className="text-sm text-slate-400">
+                            {streakData?.current_streak === 1 ? 'Tag' : 'Tage'}
+                          </p>
                         </div>
-                        <p className="text-muted-foreground text-sm">
-                          {streakData?.current_streak === 1 ? 'Tag' : 'Tage'}
-                        </p>
-                      </div>
-                    </CardContent>
-                  </Card>
+                      )}
+                    </div>
+                  </div>
 
-                  {/* Longest Streak */}
-                  <Card>
-                    <CardHeader className="px-4 py-4 sm:px-6 sm:py-6">
-                      <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                        <TrendingUp className="h-4 w-4 shrink-0 text-blue-600 sm:h-5 sm:w-5" />
-                        Längste Serie
-                      </CardTitle>
-                      <CardDescription className="text-xs sm:text-sm">
-                        Rekord an aufeinanderfolgenden Tagen
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="px-4 sm:px-6">
-                      <div className="text-center">
-                        <div className="mb-2 text-6xl font-bold text-blue-600">
-                          {streakData?.longest_streak || 0}
-                        </div>
-                        <p className="text-muted-foreground text-sm">
-                          {streakData?.longest_streak === 1 ? 'Tag' : 'Tage'}
-                        </p>
+                  <div className="overflow-hidden rounded-2xl border border-slate-700 bg-slate-800">
+                    <div className="border-b border-slate-700 p-6">
+                      <div className="mb-2 flex items-center gap-2">
+                        <TrendingUp className="h-5 w-5 text-indigo-400" />
+                        <h3 className="text-lg font-semibold text-slate-100">Längste Serie</h3>
                       </div>
-                    </CardContent>
-                  </Card>
+                      <p className="text-sm text-slate-400">Rekord an aufeinanderfolgenden Tagen</p>
+                    </div>
+                    <div className="p-6">
+                      {personalLoading ? (
+                        <Skeleton className="mx-auto h-20 w-32 bg-slate-700" />
+                      ) : (
+                        <div className="text-center">
+                          <div className="mb-2 text-6xl font-bold text-indigo-500">
+                            {streakData?.longest_streak || 0}
+                          </div>
+                          <p className="text-sm text-slate-400">
+                            {streakData?.longest_streak === 1 ? 'Tag' : 'Tage'}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
                 {/* Completion Rate */}
-                <Card>
-                  <CardHeader className="px-4 py-4 sm:px-6 sm:py-6">
-                    <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                      <Target className="h-4 w-4 shrink-0 text-green-600 sm:h-5 sm:w-5" />
-                      Abschlussrate
-                    </CardTitle>
-                    <CardDescription className="text-xs sm:text-sm">
-                      Pünktlich vs. Überfällig
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="px-4 sm:px-6">
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      <div className="rounded-lg border border-green-200 bg-green-50 p-4">
-                        <div className="mb-2 text-sm font-medium text-green-900">Pünktlich</div>
-                        <div className="mb-1 text-3xl font-bold text-green-600">
-                          {completionRate?.on_time || 0}
-                        </div>
-                        <div className="text-xs text-green-700">
-                          {completionRate?.on_time_percentage.toFixed(1)}% aller Aufgaben
-                        </div>
-                      </div>
-                      <div className="rounded-lg border border-red-200 bg-red-50 p-4">
-                        <div className="mb-2 text-sm font-medium text-red-900">Überfällig</div>
-                        <div className="mb-1 text-3xl font-bold text-red-600">
-                          {completionRate?.overdue || 0}
-                        </div>
-                        <div className="text-xs text-red-700">
-                          {completionRate?.overdue_percentage.toFixed(1)}% aller Aufgaben
-                        </div>
-                      </div>
+                <div className="overflow-hidden rounded-2xl border border-slate-700 bg-slate-800">
+                  <div className="border-b border-slate-700 p-6">
+                    <div className="mb-2 flex items-center gap-2">
+                      <Target className="h-5 w-5 text-teal-400" />
+                      <h3 className="text-lg font-semibold text-slate-100">Abschlussrate</h3>
                     </div>
-                  </CardContent>
-                </Card>
+                    <p className="text-sm text-slate-400">Pünktlich vs. Überfällig</p>
+                  </div>
+                  <div className="p-6">
+                    {personalLoading ? (
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <Skeleton className="h-32 bg-slate-700" />
+                        <Skeleton className="h-32 bg-slate-700" />
+                      </div>
+                    ) : (
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <div className="rounded-xl border border-teal-500/30 bg-teal-500/10 p-6">
+                          <div className="mb-2 text-sm font-medium text-teal-400">Pünktlich</div>
+                          <div className="mb-1 text-4xl font-bold text-teal-500">
+                            {completionRate?.on_time || 0}
+                          </div>
+                          <div className="text-xs text-teal-400">
+                            {completionRate?.on_time_percentage.toFixed(1)}% aller Aufgaben
+                          </div>
+                        </div>
+                        <div className="rounded-xl border border-pink-500/30 bg-pink-500/10 p-6">
+                          <div className="mb-2 text-sm font-medium text-pink-400">Überfällig</div>
+                          <div className="mb-1 text-4xl font-bold text-pink-500">
+                            {completionRate?.overdue || 0}
+                          </div>
+                          <div className="text-xs text-pink-400">
+                            {completionRate?.overdue_percentage.toFixed(1)}% aller Aufgaben
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
 
                 {/* Personal Weekly Trend */}
-                <Card>
-                  <CardHeader className="px-4 py-4 sm:px-6 sm:py-6">
-                    <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                      <Calendar className="h-4 w-4 shrink-0 text-blue-600 sm:h-5 sm:w-5" />
-                      Persönlicher Wochenverlauf
-                    </CardTitle>
-                    <CardDescription className="text-xs sm:text-sm">
-                      Deine Aufgaben der letzten 12 Wochen
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="px-2 sm:px-6">
-                    {personalWeeklyTrend.length === 0 ? (
-                      <div className="flex h-64 items-center justify-center sm:h-80">
-                        <p className="text-muted-foreground text-center text-sm">
-                          Noch keine Daten vorhanden
-                        </p>
+                <div className="overflow-hidden rounded-2xl border border-slate-700 bg-slate-800">
+                  <div className="border-b border-slate-700 p-6">
+                    <div className="mb-2 flex items-center gap-2">
+                      <Calendar className="h-5 w-5 text-indigo-400" />
+                      <h3 className="text-lg font-semibold text-slate-100">
+                        Persönlicher Wochenverlauf
+                      </h3>
+                    </div>
+                    <p className="text-sm text-slate-400">Deine Aufgaben der letzten 12 Wochen</p>
+                  </div>
+                  <div className="p-6">
+                    {personalLoading ? (
+                      <div className="flex h-80 items-center justify-center">
+                        <Skeleton className="h-full w-full bg-slate-700" />
+                      </div>
+                    ) : personalWeeklyTrend.length === 0 ? (
+                      <div className="flex h-80 items-center justify-center">
+                        <p className="text-slate-500">Noch keine Daten vorhanden</p>
                       </div>
                     ) : (
                       <ChartContainer
                         config={chartConfig}
-                        className="h-64 w-full sm:h-80"
+                        className="h-80 w-full"
                       >
                         <LineChart data={personalWeeklyTrend}>
-                          <CartesianGrid strokeDasharray="3 3" />
+                          <CartesianGrid
+                            strokeDasharray="3 3"
+                            stroke="#334155"
+                          />
                           <XAxis
                             dataKey="week"
                             tickLine={false}
                             tickMargin={10}
                             axisLine={false}
-                            tick={{ fontSize: 12 }}
+                            tick={{ fontSize: 12, fill: '#94a3b8' }}
                           />
                           <YAxis
                             tickLine={false}
                             tickMargin={10}
                             axisLine={false}
-                            tick={{ fontSize: 12 }}
+                            tick={{ fontSize: 12, fill: '#94a3b8' }}
                           />
                           <ChartTooltip content={<ChartTooltipContent />} />
                           <Line
                             type="monotone"
                             dataKey="task_count"
                             stroke={chartConfig.task_count.color}
-                            strokeWidth={2}
-                            dot={{ r: 4 }}
+                            strokeWidth={3}
+                            dot={{ r: 5, fill: '#6366f1' }}
                           />
                         </LineChart>
                       </ChartContainer>
                     )}
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
               </>
             )}
           </TabsContent>
