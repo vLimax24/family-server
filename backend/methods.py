@@ -1153,3 +1153,17 @@ def getCompletionRate(person_id):
         "on_time_percentage": round((on_time / total) * 100, 1),
         "overdue_percentage": round((overdue / total) * 100, 1)
     }
+
+
+# Shopping List Methods:
+
+def addShoppingSession(name, type, status, created_by):
+    ensure_person_exists(created_by)
+    ensure_not_empty(name)
+    ensure_not_empty(type)
+    ensure_not_empty(status)
+
+    cursor.execute("""
+        INSERT INTO shoppings_sessions (name, type, status, created_by, created_at) VALUES (?, ?, ?, ?, ?)
+    """, (name, type, status, created_by, int(time.time())))
+
